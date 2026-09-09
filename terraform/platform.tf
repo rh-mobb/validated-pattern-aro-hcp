@@ -1,15 +1,18 @@
-# Reserved ANF CIDR is published for a sibling stack. This root does not create
-# the delegated subnet. See issue #16 / AGENTS.md sibling section.
+# Reserved sibling CIDRs are published for a virt/storage stack. This root does
+# not create those subnets. See issue #16 / AGENTS.md sibling section.
 #
 # cidrcontains() needs Terraform >= 1.11; CI is 1.9.8 — compare numeric IPv4 ranges.
 locals {
   platform_cidrs = {
-    vnet   = var.address_prefix
-    worker = var.subnet_prefix
-    integ  = var.vnet_integration_subnet_prefix
-    jump   = var.jump_subnet_prefix
-    netapp = var.netapp_subnet_prefix
+    vnet         = var.address_prefix
+    worker       = var.subnet_prefix
+    integ        = var.vnet_integration_subnet_prefix
+    jump         = var.jump_subnet_prefix
+    netapp       = var.netapp_subnet_prefix
+    route_server = var.route_server_subnet_prefix
   }
+
+  route_server_prefix_length = tonumber(split("/", var.route_server_subnet_prefix)[1])
 
   platform_cidr_range = {
     for name, cidr in local.platform_cidrs : name => {
@@ -61,6 +64,51 @@ resource "terraform_data" "platform_cidrs" {
         local.platform_cidr_range.jump.start <= local.platform_cidr_range.netapp.end
       )
       error_message = "netapp_subnet_prefix must not overlap jump_subnet_prefix (default 10.0.2.0/28)."
+    }
+
+    precondition {
+      condition = (
+        local.platform_cidr_range.route_server.start >= local.platform_cidr_range.vnet.start &&
+        local.platform_cidr_range.route_server.end <= local.platform_cidr_range.vnet.end
+      )
+      error_message = "route_server_subnet_prefix must be inside address_prefix (VNet CIDR)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.route_server.start <= local.platform_cidr_range.worker.end &&
+        local.platform_cidr_range.worker.start <= local.platform_cidr_range.route_server.end
+      )
+      error_message = "route_server_subnet_prefix must not overlap the worker subnet (subnet_prefix)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.route_server.start <= local.platform_cidr_range.integ.end &&
+        local.platform_cidr_range.integ.start <= local.platform_cidr_range.route_server.end
+      )
+      error_message = "route_server_subnet_prefix must not overlap the VNet integration subnet."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.route_server.start <= local.platform_cidr_range.jump.end &&
+        local.platform_cidr_range.jump.start <= local.platform_cidr_range.route_server.end
+      )
+      error_message = "route_server_subnet_prefix must not overlap jump_subnet_prefix (default 10.0.2.0/28)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.route_server.start <= local.platform_cidr_range.netapp.end &&
+        local.platform_cidr_range.netapp.start <= local.platform_cidr_range.route_server.end
+      )
+      error_message = "route_server_subnet_prefix must not overlap netapp_subnet_prefix (default 10.0.3.0/24)."
+    }
+
+    precondition {
+      condition     = local.route_server_prefix_length <= 26
+      error_message = "route_server_subnet_prefix must be /26 or larger (Azure Route Server minimum)."
     }
   }
 }

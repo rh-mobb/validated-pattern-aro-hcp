@@ -56,7 +56,8 @@ JSON
     "nsg_id": "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Network/networkSecurityGroups/nsg",
     "jump_subnet_prefix": "10.0.2.0/28",
     "reserved": {
-      "netapp_subnet_prefix": "10.0.3.0/24"
+      "netapp_subnet_prefix": "10.0.3.0/24",
+      "route_server_subnet_prefix": "10.0.4.0/26"
     }
   },
   "oidc_issuer_url": "https://uksouth.oic.aro.azure.com/tenant/test",
@@ -64,6 +65,7 @@ JSON
   "key_vault_name": "cust-kv-test",
   "key_vault_uri": "https://cust-kv-test.vault.azure.net/",
   "eso_client_id": "00000000-0000-0000-0000-000000000099",
+  "cluster_api_azure_client_id": "00000000-0000-0000-0000-000000000097",
   "api_url": "https://api.test-cluster.example.com:443",
   "api_visibility": "Public",
   "cluster_version": "4.22",

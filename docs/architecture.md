@@ -95,6 +95,7 @@ ANF NFS (sibling) is the model to copy: a delegated subnet on the cluster VNet, 
 | Worker, pod, and service CIDRs | RFC1918 overlays in the customer VNet |
 | HCP VNet integration subnet | RFC1918; hosted control plane private connectivity into the customer VNet |
 | ANF NFS (sibling `modules/azure`) | Delegated subnet `10.0.3.0/24` (installer `netapp_subnet_prefix`). Volumes get VNet IPs. **Not** a Private Endpoint. |
+| Azure Route Server BGP data plane (sibling) | RFC1918 `virtualRouterIps` on `RouteServerSubnet` (`10.0.4.0/26`, installer `route_server_subnet_prefix`). Speaker NICs and CUDN stay in the VNet. |
 | Jump NIC | RFC1918 `10.0.2.0/28`. The public IP on that NIC is the exception below. |
 
 ### Approved exceptions
@@ -106,6 +107,7 @@ ANF NFS (sibling) is the model to copy: a delegated subnet on the cluster VNet, 
 | Node outbound (`outboundType = LoadBalancer`) | Public IP on the managed-RG load balancer | HCP preview default; nodes must pull images and reach Azure / Red Hat | Track platform support for private egress; do not treat this as RFC1918 |
 | Key Vault / etcd KMS (`kms.visibility: Public`) | Vault public network access; no PE or `privatelink.vaultcore.azure.net` | HCP customer-managed KMS consumes a public vault today | Demo Bicep can private-link the vault; this repo has not |
 | Jump box public IP | SSH from the operator network | Optional (`enable_jumpbox`); NSG sourced to `jump_ssh_source_prefix` | Bastion, PE jump, or an existing VNet path |
+| Azure Route Server Standard public IP (sibling) | Azure requires a PIP for SDN management of Route Server; not a customer BGP listener | Sibling virt stack creates it with Route Server. BGP neighbors are RFC1918 `virtualRouterIps` | None; required by the Azure service |
 | Microsoft Entra ID / Graph | SaaS, not VNet-injectable as RFC1918 | Identity plane for console OIDC | None; keep as exception |
 | Azure Resource Manager (Terraform, `az`, Trident CSI) | Public ARM HTTPS | Azure control plane | ARM Private Link is not in this pattern |
 | Image pulls, OperatorHub, GitOps `github.com` | Public HTTPS | Cluster must fetch payload and git | Private registry / GHES later; add a row if you keep them public |
@@ -147,7 +149,7 @@ flowchart TB
 | Stage | Tool | What it creates |
 |-------|------|-----------------|
 | `make setup` | `scripts/setup.sh` | Installs the `az aro hcp` CLI extension. No Azure resources. |
-| `make cluster.<name>.apply` | Terraform `azurerm` + `azapi` + `azuread` | Customer RG, network, Key Vault, etcd key, optional `redhat-pull-secret`, 13 HCP identities, ESO workload identity + federated credential, 28 operator role assignments + Key Vault Secrets User for ESO, `hcpOpenShiftClusters`, `nodePools` from `node_pools` (default `np-1`), Entra app + `externalAuths/entra` + Key Vault client secret (unless `enable_external_auth = false`). |
+| `make cluster.<name>.apply` | Terraform `azurerm` + `azapi` + `azuread` | Customer RG, network, Key Vault, etcd key, optional `redhat-pull-secret`, 13 HCP identities, ESO workload identity + federated credential, CAPI federated credential for bgp-cloud-connector, 28 operator role assignments + Key Vault Secrets User for ESO, `hcpOpenShiftClusters`, `nodePools` from `node_pools` (default `np-1`), Entra app + `externalAuths/entra` + Key Vault client secret (unless `enable_external_auth = false`). |
 | `make cluster.<name>.kubeconfig` | `az aro hcp cluster request-credential` | Local `.kube/config` only. Admin credential TTL is 24 hours. |
 | `make cluster.<name>.external-auth` | `oc` + optional Entra fallback | Console secret in `openshift-config`, break-glass `cluster-admin` CRB, GitOps OIDC patch. When Terraform already created the app, does **not** create or rotate Entra. |
 | `make cluster.<name>.bootstrap` | `oc apply -k` + Argo `Application` | OpenShift GitOps, Web Terminal, Compliance Operator, External Secrets Operator; ConfigMap `openshift-gitops/aro-platform-metadata` (ESO client ID + vault URI from Terraform outputs); `kube-system/additional-pull-secret` from Key Vault `redhat-pull-secret` (or `PULL_SECRET_PATH`); root app syncs [`gitops/overlays/public`](../gitops/overlays/public/) or [`private`](../gitops/overlays/private/) (from `api_visibility`, or `GITOPS_OVERLAY`). |
@@ -372,7 +374,7 @@ Terraform resources live under [`modules/`](../modules/) (composed by [`terrafor
 | User-assigned identity × 1 | `${cluster_name}-eso` | `azurerm_user_assigned_identity.eso` | External Secrets Operator workload identity. Not in `cluster_identity_ids`. |
 | Role assignment × 28 | — | `azurerm_role_assignment.this` | Operator RBAC for cluster managed identities. |
 | Role assignment × 1 | Key Vault Secrets User | `azurerm_role_assignment.eso_key_vault_secrets_user` | ESO identity on the customer vault. |
-| Federated identity credential × 1 | `eso-external-secrets` | `azurerm_federated_identity_credential.eso` | Trusts `system:serviceaccount:external-secrets-operator:external-secrets-sa` against the cluster OIDC issuer. |
+| Federated identity credential × 2 | `eso-external-secrets`, `capi-bgp-cloud-connector` | `azurerm_federated_identity_credential.eso`, `azurerm_federated_identity_credential.bgp_cloud_connector` | ESO trusts `system:serviceaccount:external-secrets-operator:external-secrets-sa`. CAPI trusts `system:serviceaccount:openshift-bgp-cloud-connector:openshift-bgp-cloud-connector-controller-manager` so the sibling BGP operator can token-exchange for NIC IP forwarding. |
 | Role assignment × 1 | Key Vault Administrator | `azurerm_role_assignment.deployer_key_vault_admin` | Deployer object ID so Terraform can create the etcd key and optional pull secret. |
 | HCP cluster | `my-cluster` | `azapi_resource.hcp_cluster` | `hcpOpenShiftClusters@2026-06-30-preview`. `schema_validation_enabled = false`. Timeouts 120m. |
 | Node pool | `node_pools` keys (default `np-1`) | `azapi_resource.node_pool` (`for_each`) | Child `nodePools`. Last-pool DELETE is blocked (OCPBUGS-86702); destroy state-rms all instances first. |
@@ -425,6 +427,7 @@ flowchart TB
 | `10.0.1.0/24` | VNet integration subnet | Terraform `vnet_integration_subnet_prefix`; cluster `platform.vnetIntegrationSubnetId` |
 | `10.0.2.0/28` | Jump subnet | Terraform `jump_subnet_prefix`; optional `enable_jumpbox` |
 | `10.0.3.0/24` | Reserved ANF delegated subnet | Terraform `netapp_subnet_prefix`. **Not created here.** Sibling virt/storage stack ([issue #16](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/16)) consumes this CIDR. NFS data plane is RFC1918 in-VNet (not a Private Endpoint). |
+| `10.0.4.0/26` | Reserved Azure Route Server subnet | Terraform `route_server_subnet_prefix`. **Not created here.** Sibling creates subnet **`RouteServerSubnet`** (Azure-required name, no NSG/UDR). BGP data plane is RFC1918; the sibling also creates a Standard public IP (management plane — exception above). |
 | `10.128.0.0/14` | Pod CIDR | Terraform `pod_cidr` (ARM default) |
 | `172.30.0.0/16` | Service CIDR | Terraform `service_cidr` (ARM default) |
 
@@ -588,6 +591,8 @@ Control-plane disk CSI has **no** network-scoped Azure role in this set — only
 
 `${cluster_name}-eso` has **Key Vault Secrets User** on the customer vault (not in the 28-row table). Terraform also creates federated identity credential `eso-external-secrets` on that identity after the cluster exists: issuer is `platform.issuerUrl`, audience `api://AzureADTokenExchange`, subject `system:serviceaccount:external-secrets-operator:external-secrets-sa`. The ServiceAccount does not need to exist yet. Bootstrap publishes those values into ConfigMap `openshift-gitops/aro-platform-metadata`; a GitOps Job annotates the ServiceAccount. Do not put per-cluster client IDs or vault URLs into committed `gitops/overlays/`.
 
+Terraform also creates federated identity credential `capi-bgp-cloud-connector` on **`cluster-api-azure`** (not a 14th customer MI): same issuer and audience, subject `system:serviceaccount:openshift-bgp-cloud-connector:openshift-bgp-cloud-connector-controller-manager`. [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector) `spec.azure.networkInterfaceClientID` uses that client ID (`platform.cluster_api_azure_client_id`) to enable NIC IP forwarding on speaker nodes. Worker NICs live in the **managed RG** (RP deny assignment); a customer MI cannot patch them. **Blast radius:** the operator can then act as full CAPI in the managed RG (VMs, NICs, disks), not only IP forwarding. Least-privilege follow-up: [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20).
+
 ```mermaid
 flowchart LR
     subgraph scopes["RBAC scopes"]
@@ -724,14 +729,15 @@ np-virt = {
   replicas          = 2
   availability_zone = "1"
   labels = {
-    workload = "virtualization"
+    workload   = "virtualization"
+    bgp_router = "true"
   }
 }
 ```
 
-Quota: **+16 vCPU** Dsv6. Do not taint unless HyperConverged and virt-handler have matching tolerations. Operator path: [Virt stack](guides/virt-stack.md) (`make cluster.aro-virt.platform` then the sibling). Cluster ARM delete cascades extra pools after destroy state-rms Terraform `nodePools`.
+Quota: **+16 vCPU** Dsv6. Do not taint unless HyperConverged and virt-handler have matching tolerations. `bgp_router=true` marks these nodes as CUDN BGP speakers for the sibling Azure Route Server path (shared with CNV in this example). Production can keep a small speaker pool (Route Server **16 BGP peers** max) and run CUDN/VMs elsewhere if those NICs have `enableIPForwarding` (operator [RFE #121](https://github.com/openshift/bgp-cloud-connector/issues/121); sibling DS until then). Sibling GitOps sample `BGPRouting` `virt` advertises `192.168.100.0/24` (operator creates the CUDN; workloads in namespace `virt`). Operator path: [Virt stack](guides/virt-stack.md) (`make cluster.aro-virt.platform` then the sibling). Cluster ARM delete cascades extra pools after destroy state-rms Terraform `nodePools`.
 
-Worker VMs and disks appear in the **managed** RG. Their NICs attach to `${cluster_name}-worker` (`my-cluster-worker` in the example).
+Worker VMs and disks appear in the **managed** RG. Their NICs attach to `${cluster_name}-worker` (`my-cluster-worker` in the example). CUDN BGP needs `enableIPForwarding` on those NICs; the sibling operator token-exchanges as `cluster-api-azure` (see [Identities and RBAC](#identities-and-rbac) and [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20)).
 
 ## Managed resource group
 

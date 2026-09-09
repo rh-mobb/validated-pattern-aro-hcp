@@ -33,12 +33,15 @@ node_pools = {
     availability_zone = "1"
   }
   # Azure Boost Dsv6, 8+ cores (required for CNV). Quota: +16 vCPU Standard Dsv6.
+  # Shared BGP speakers for the virt example (label bgp_router=true). Production
+  # should use a dedicated speaker pool — see docs/guides/virt-stack.md.
   np-virt = {
     vm_size           = "Standard_D8s_v6"
     replicas          = 2
     availability_zone = "1"
     labels = {
-      workload = "virtualization"
+      workload   = "virtualization"
+      bgp_router = "true"
     }
   }
 }
@@ -48,8 +51,9 @@ ingress_visibility = "Public"
 
 enable_jumpbox = false
 
-# Reserved CIDR for sibling ANF delegated subnet (not created here).
-# netapp_subnet_prefix = "10.0.3.0/24"
+# Reserved CIDRs for the sibling virt stack (not created here).
+# netapp_subnet_prefix         = "10.0.3.0/24"
+# route_server_subnet_prefix   = "10.0.4.0/26"
 
 # Extra virt pool is in node_pools (np-virt). Do not taint unless HyperConverged
 # and virt-handler have matching tolerations. Omit subnet_id to use the cluster default.

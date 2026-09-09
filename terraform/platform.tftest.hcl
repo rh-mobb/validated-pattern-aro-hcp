@@ -96,6 +96,40 @@ run "platform_contract_v1_defaults" {
     condition     = output.netapp_subnet_prefix == "10.0.3.0/24"
     error_message = "netapp_subnet_prefix output must match the reserved CIDR."
   }
+
+  assert {
+    condition     = output.platform.network.reserved.route_server_subnet_prefix == "10.0.4.0/26"
+    error_message = "Reserved Azure Route Server CIDR must default to 10.0.4.0/26."
+  }
+
+  assert {
+    condition     = output.route_server_subnet_prefix == "10.0.4.0/26"
+    error_message = "route_server_subnet_prefix output must match the reserved CIDR."
+  }
+
+  assert {
+    condition     = contains(keys(output.platform), "cluster_api_azure_client_id")
+    error_message = "platform must publish cluster_api_azure_client_id for sibling BGPCloudConfiguration networkInterfaceClientID."
+  }
+}
+
+run "capi_federated_credential_trusts_bgp_operator_sa" {
+  command = plan
+
+  assert {
+    condition     = azurerm_federated_identity_credential.bgp_cloud_connector.subject == "system:serviceaccount:openshift-bgp-cloud-connector:openshift-bgp-cloud-connector-controller-manager"
+    error_message = "CAPI federated credential must trust the bgp-cloud-connector manager ServiceAccount."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.bgp_cloud_connector.name == "capi-bgp-cloud-connector"
+    error_message = "CAPI BGP federated credential name must be capi-bgp-cloud-connector."
+  }
+
+  assert {
+    condition     = contains(azurerm_federated_identity_credential.bgp_cloud_connector.audience, "api://AzureADTokenExchange")
+    error_message = "CAPI BGP federated credential audience must be api://AzureADTokenExchange."
+  }
 }
 
 run "netapp_cidr_must_not_overlap_jump" {
@@ -115,6 +149,42 @@ run "netapp_cidr_must_be_inside_vnet" {
 
   variables {
     netapp_subnet_prefix = "192.168.0.0/24"
+  }
+
+  expect_failures = [
+    terraform_data.platform_cidrs,
+  ]
+}
+
+run "route_server_cidr_must_not_overlap_netapp" {
+  command = plan
+
+  variables {
+    route_server_subnet_prefix = "10.0.3.0/26"
+  }
+
+  expect_failures = [
+    terraform_data.platform_cidrs,
+  ]
+}
+
+run "route_server_cidr_must_be_inside_vnet" {
+  command = plan
+
+  variables {
+    route_server_subnet_prefix = "192.168.0.0/26"
+  }
+
+  expect_failures = [
+    terraform_data.platform_cidrs,
+  ]
+}
+
+run "route_server_cidr_must_be_at_least_slash_26" {
+  command = plan
+
+  variables {
+    route_server_subnet_prefix = "10.0.4.0/27"
   }
 
   expect_failures = [

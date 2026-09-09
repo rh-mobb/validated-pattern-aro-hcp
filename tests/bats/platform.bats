@@ -23,4 +23,6 @@ teardown() {
   [ -f "${BATS_TEST_DIRNAME}/tmp/platform.json" ]
   grep -q '"contract_version": 1' "${BATS_TEST_DIRNAME}/tmp/platform.json"
   grep -q '"netapp_subnet_prefix": "10.0.3.0/24"' "${BATS_TEST_DIRNAME}/tmp/platform.json"
+  grep -q '"route_server_subnet_prefix": "10.0.4.0/26"' "${BATS_TEST_DIRNAME}/tmp/platform.json"
+  grep -q '"cluster_api_azure_client_id": "00000000-0000-0000-0000-000000000097"' "${BATS_TEST_DIRNAME}/tmp/platform.json"
 }

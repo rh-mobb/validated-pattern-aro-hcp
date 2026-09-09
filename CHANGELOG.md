@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Reserved `route_server_subnet_prefix` default `10.0.4.0/26` (not created here; sibling creates `RouteServerSubnet`). Overlap checks vs VNet, worker, integration, jump, and ANF; Azure minimum `/26`
+- Federated credential `capi-bgp-cloud-connector` on `cluster-api-azure` for sibling [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector) (NIC `enableIPForwarding` in the managed RG). `platform.json` publishes `cluster_api_azure_client_id`. Least-privilege follow-up: [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20)
+- [CDI clone/upload memory](docs/guides/cnv-cdi-storage-workloads.md) (`storageWorkloads`; sibling HyperConverged sets 4Gi)
 - Operator guide [Virt stack](docs/guides/virt-stack.md): two-checkout e2e for ARO HCP + sibling ANF/Trident/CNV (verify, GitOps RBAC, destroy including leftover ANF volumes)
 
 - `make cluster.<name>.platform` writes gitignored `clusters/<name>/platform.json` (contract v1) for sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt)
@@ -35,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `hack/versions` — plan-time OpenShift version validation per region
 
 ### Changed
+- `clusters/aro-virt` labels `np-virt` `bgp_router=true` (shared BGP speakers for the virt example). Production can keep a small speaker pool (Azure Route Server 16-peer cap)
+- Virt-stack / architecture: CAPI federation blast radius, Route Server PIP privacy exception (sibling), extra-hop NIC forwarding until [bgp-cloud-connector#121](https://github.com/openshift/bgp-cloud-connector/issues/121)
 - Extra node pools live in `node_pools` (Terraform), not `make cluster.<name>.virt-pool`
 - Destroy state-rms **all** Terraform `nodePools` instances (OCPBUGS-86702), then `terraform destroy`
 - Docs: sibling virt overlay binds `cluster-admin` to the shared GitOps application controller; this installer keeps the default least-privilege ClusterRole ([virt #6](https://github.com/rh-mobb/validated-pattern-openshift-virt/issues/6))

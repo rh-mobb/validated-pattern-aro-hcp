@@ -1,21 +1,27 @@
 # OpenShift Virtualization full stack
 
-Two GitHub checkouts, one cluster. This installer provisions ARO HCP, GitOps, and a virt-ready node pool. Sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt) provisions Azure NetApp Files, Trident CSI, and OpenShift Virtualization.
+Two GitHub checkouts, one cluster. This installer provisions ARO HCP, GitOps, and a virt-ready node pool. Sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt) provisions Azure NetApp Files, Trident CSI, OpenShift Virtualization, Azure Route Server, and the CUDN BGP operator (in-cluster build of [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector)).
 
-Do **not** create ANF, Trident CRs, or CNV in this repository. Do **not** install a second Argo CD.
+Do **not** create ANF, Trident CRs, CNV, or Azure Route Server in this repository. Do **not** install a second Argo CD.
 
 ## What you get
 
 | Layer | Repo | Result |
 |-------|------|--------|
-| Cluster | this repo, [`clusters/aro-virt`](../../clusters/aro-virt/) | Public API/ingress, `np-1` (`Standard_D4s_v6` × 2) + `np-virt` (`Standard_D8s_v6` × 2, label `workload=virtualization`, Azure zone `1`) |
+| Cluster | this repo, [`clusters/aro-virt`](../../clusters/aro-virt/) | Public API/ingress, `np-1` (`Standard_D4s_v6` × 2) + `np-virt` (`Standard_D8s_v6` × 2, labels `workload=virtualization` and `bgp_router=true`, Azure zone `1`) |
 | GitOps baseline | this repo `make cluster.aro-virt.bootstrap` | OpenShift GitOps, Web Terminal, Compliance, External Secrets |
 | Platform contract | `make cluster.aro-virt.platform` | Gitignored `clusters/aro-virt/platform.json` |
-| ANF + Trident + CNV | sibling `make cluster.aro-virt.apply` then `.bootstrap` | Delegated subnet `10.0.3.0/24`, ANF account/pool, StorageClass `anf-virt`, HyperConverged |
+| ANF + Trident + CNV + Route Server | sibling `make cluster.aro-virt.apply` then `.bootstrap` | Delegated subnet `10.0.3.0/24`, `RouteServerSubnet` `10.0.4.0/26`, ANF account/pool, StorageClass `anf-virt`, HyperConverged, bgp-cloud-connector |
 
 ANF NFS is VNet-native RFC1918 (delegated subnet), not a Private Endpoint — see [Network privacy](../architecture.md#network-privacy). Cluster default StorageClass stays **`managed-csi`**. CNV uses `anf-virt` via `storageclass.kubevirt.io/is-default-virt-class`.
 
 Microsoft supports OpenShift Virtualization on ARO only on **Dsv5 / Dsv6 with 8+ cores** (Azure Boost). Keep `np-1` for platform pods. Do not taint `np-virt` unless HyperConverged and virt-handler have matching tolerations.
+
+This example **shares** `np-virt` as BGP speakers (`bgp_router=true`): those nodes run FRR and peer with Azure Route Server. That is enough for a two-node demo (Route Server has two BGP endpoints). **Production** can keep a small speaker pool (Azure Route Server **16 BGP peers** max) and run CUDN/VMs on other workers if those NICs have `enableIPForwarding`. OVN extra-hops VNet ingress from a speaker to the VM’s node; the reply egresses the VM node with the CUDN source, which Azure drops unless forwarding is on. Do **not** label virt nodes `bgp_router=true` just to get that flag.
+
+bgp-cloud-connector only enables forwarding on `routerNodeSelector` today ([RFE #121](https://github.com/openshift/bgp-cloud-connector/issues/121)). Until that ships, the sibling GitOps DaemonSet `azure-nic-ip-forwarding` patches **all worker NICs** using `cluster-api-azure` ([tracking #9](https://github.com/rh-mobb/validated-pattern-openshift-virt/issues/9)).
+
+Speaker (and workaround) NIC IP forwarding uses the installer **`cluster-api-azure`** identity (federated to the bgp-cloud-connector ServiceAccount). The sibling BGP MI only manages Route Server BGP connections in the customer RG. Worker NICs are in the managed RG (RP deny assignment). That token-exchange lets the operator act as full CAPI there — tracked for a tighter identity in installer [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20). `platform.json` publishes `cluster_api_azure_client_id` for the sibling Job (`spec.azure.networkInterfaceClientID`).
 
 ## Prerequisites
 
@@ -26,7 +32,7 @@ Complete [Account prerequisites](../prerequisites/account.md) and [sibling prere
 | Two checkouts | This repo **and** `validated-pattern-openshift-virt` (or gitignored `references/validated-pattern-openshift-virt`) |
 | Dsv6 quota | **+16 vCPU** `Standard Dsv6` in `location` (`np-virt` × 2 × 8 cores) |
 | `Microsoft.NetApp` | Registered; ANF capacity quota. Sibling pool default is **1 TiB** Flexible (billable) |
-| Free CIDR | Installer `netapp_subnet_prefix` default `10.0.3.0/24` must not overlap worker, integration, or jump (`10.0.2.0/28`) |
+| Free CIDR | Installer `netapp_subnet_prefix` default `10.0.3.0/24` and `route_server_subnet_prefix` default `10.0.4.0/26` must not overlap worker, integration, jump (`10.0.2.0/28`), or each other |
 | Tools | Same as the installer, plus sibling Terraform `>= 1.9` |
 
 Permissions: installer [full-stack by step](../prerequisites/full-stack.md#permissions-by-deployment-step). Sibling apply needs **Contributor + User Access Administrator** on the customer RG (Trident custom role). Sibling bootstrap needs the installer kubeconfig (`cluster-admin`).
@@ -81,7 +87,7 @@ make cluster.aro-virt.platform           # clusters/aro-virt/platform.json (giti
 
 Workers `Ready` is not a finished install. Console URL HTTP 200 and `clusterversion` Available need external-auth.
 
-## 2. Sibling (ANF + Trident + CNV)
+## 2. Sibling (ANF + Trident + CNV + Route Server)
 
 From the **sibling** checkout. Point ingest at the installer profile. Point `oc` at the **installer** kubeconfig (sibling defaults to its own `.kube/config`, which is empty):
 
@@ -96,8 +102,8 @@ cp -r clusters/aro-virt clusters/my-virt   # or use clusters/aro-virt in place
 ARO_HCP_ROOT="${ARO_HCP_ROOT}" ARO_HCP_PROFILE=aro-virt \
   make cluster.aro-virt.plan
 ARO_HCP_ROOT="${ARO_HCP_ROOT}" ARO_HCP_PROFILE=aro-virt \
-  make cluster.aro-virt.apply              # delegated subnet, ANF account/pool, Trident identity
-make cluster.aro-virt.bootstrap            # Argo Application rwx-storage + anf-platform-metadata
+  make cluster.aro-virt.apply              # ANF subnet, RouteServerSubnet, ANF pool, Trident + BGP identities
+make cluster.aro-virt.bootstrap            # Argo Application rwx-storage + anf-platform-metadata + bgp-platform-metadata
 ```
 
 One Argo CD instance (`openshift-gitops`). `cluster-config` (installer) and `rwx-storage` (sibling) are two Applications on the **same** application controller.
@@ -111,13 +117,13 @@ Installer:
 ```bash
 export KUBECONFIG=/path/to/validated-pattern-aro-hcp/.kube/config
 az aro hcp cluster show -g aro-virt-rg -n aro-virt --query provisioningState
-oc get nodes -L workload,topology.kubernetes.io/zone
+oc get nodes -L workload,bgp_router,topology.kubernetes.io/zone
 oc get clusterversion
 oc get co console
 # Console route should return HTTP 200 after external-auth
 ```
 
-Expect four workers: two unlabeled `np-1`, two `workload=virtualization` on `np-virt`. Kubernetes zone labels look like `uksouth-1` even when create input was `"1"`.
+Expect four workers: two unlabeled `np-1`, two `workload=virtualization` / `bgp_router=true` on `np-virt`. Kubernetes zone labels look like `uksouth-1` even when create input was `"1"`.
 
 Sibling / GitOps:
 
@@ -135,8 +141,29 @@ oc -n trident get tbc anf-backend
 oc -n openshift-cnv get hyperconverged kubevirt-hyperconverged
 # systemHealthStatus healthy
 
+# CDI clone/upload memory (default ~600M OOMs on large images without this)
+oc get hyperconverged kubevirt-hyperconverged -n openshift-cnv \
+  -o jsonpath='{.spec.resourceRequirements.storageWorkloads.limits.memory}{"\n"}'
+# Expected: 4Gi
+oc get cdiconfig config -o jsonpath='{.status.defaultPodResourceRequirements.limits.memory}{"\n"}'
+# Expected: 4Gi
+
 oc -n openshift-cnv get pods -l kubevirt.io=virt-handler -o wide
+
+oc get bgpcloudconfiguration cluster -o yaml
+# spec.platform Azure; status shows Route Server neighbors
+
+oc -n openshift-bgp-cloud-connector get pods
+oc -n openshift-bgp-cloud-connector get builds
+
+oc get bgprouting virt
+# Ready; operator created ClusterUDN cluster-udn-virt (do not apply a CUDN yourself)
+oc get clusteruserdefinednetwork cluster-udn-virt
+oc get ns virt --show-labels
+# cluster-udn=virt, k8s.ovn.org/primary-user-defined-network=
 ```
+
+Workloads that should be reachable from the jump / VNet go in namespace **`virt`** (primary CUDN `192.168.100.0/24`). Overlay IPs (`10.128.0.0/14`) are not advertised.
 
 Smoke RWX (optional; ANF first volume often takes **5–15 minutes**, CSI may `DeadlineExceeded` then bind on retry):
 
@@ -163,7 +190,7 @@ CNV golden images in `openshift-virtualization-os-images` also provision on `anf
 
 ## 4. Destroy
 
-**Sibling first.** Cleanup deletes `anf-virt` PVCs (timeout 180s each). ANF volume delete is slower than that; leftover volumes make `terraform destroy` fail on the capacity pool and NetApp subnet.
+**Sibling first.** Cleanup deletes BGP CRs (while the operator can still remove Azure peerings) then `anf-virt` PVCs (timeout 180s each). ANF volume delete is slower than that; leftover volumes make `terraform destroy` fail on the capacity pool and NetApp subnet.
 
 ```bash
 # sibling checkout
@@ -198,10 +225,13 @@ This installer destroy does **not** call the sibling. It also does not delete a 
 | Sibling destroy 409 on the pool | Volumes still exist | Delete ANF volumes, wait, destroy again. |
 | Sibling bootstrap `oc whoami` fails | Empty sibling `.kube/config` | `KUBECONFIG_PATH` / `KUBECONFIG` = installer `.kube/config`. |
 | Tags / region / name wrong | Leftover `TF_VAR_*` | Unset in the same shell; see step 0. |
+| DataVolume clone stuck ~65%, CDI pod OOMKilled | CDI default ~600M memory limit | Sibling GitOps sets `storageWorkloads` on HyperConverged; verify `cdiconfig` → 4Gi. See [CDI storage workloads](cnv-cdi-storage-workloads.md). |
+| `disk.img: file exists` on clone retry | Partial clone after OOM | Delete DV, tmp PVCs in `openshift-virtualization-os-images`, related pods; retry after `cdiconfig` shows 4Gi. |
 
 ## Related
 
 - Sibling [consume modes](https://rh-mobb.github.io/validated-pattern-openshift-virt/guides/consume/)
+- [CDI clone/upload memory](cnv-cdi-storage-workloads.md)
 - [GitOps bootstrap](gitops.md)
 - [Architecture — virt workers](../architecture.md#openshift-virtualization-workers-clustersaro-virt)
 - [Microsoft: CNV on ARO](https://learn.microsoft.com/en-us/azure/openshift/howto-create-openshift-virtualization)

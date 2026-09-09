@@ -20,9 +20,10 @@ ANF + Trident (later CNV) is a **second IaC run**, not this root:
 | Local co-dev | This checkout | Gitignored `references/validated-pattern-openshift-virt` (nested git repo; no submodule) |
 
 - Publish the contract with `make cluster.<name>.platform` (`clusters/<name>/platform.json`, gitignored).
-- Reserved ANF CIDR default **`10.0.3.0/24`** (`netapp_subnet_prefix`). Jump stays `10.0.2.0/28`. This repo does not create the NetApp subnet.
-- **Destroy sibling first** (Trident cleanup + ANF), then `make cluster.<name>.destroy`.
-- Do not implement ANF, Trident CRs, or CNV in this tree. Do not add a `make cluster.<name>.storage` that shells into `references/`.
+- Reserved ANF CIDR default **`10.0.3.0/24`** (`netapp_subnet_prefix`). Reserved Azure Route Server CIDR default **`10.0.4.0/26`** (`route_server_subnet_prefix`). Jump stays `10.0.2.0/28`. This repo does not create the NetApp or RouteServer subnets.
+- Federate **`cluster-api-azure`** to the sibling bgp-cloud-connector ServiceAccount (NIC IP forwarding in the managed RG). Do **not** add a 14th customer MI; least-privilege follow-up is [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20).
+- **Destroy sibling first** (Trident cleanup + BGP CR drain + ANF + Route Server), then `make cluster.<name>.destroy`.
+- Do not implement ANF, Trident CRs, CNV, or Azure Route Server in this tree. Do not add a `make cluster.<name>.storage` that shells into `references/`.
 
 If the user asks only for RWX/virt storage, work in the sibling (or that `references/` clone). If they ask for a cluster, stay here.
 

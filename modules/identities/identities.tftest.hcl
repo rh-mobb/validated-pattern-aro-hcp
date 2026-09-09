@@ -28,6 +28,15 @@ run "identity_count" {
   }
 }
 
+run "bgp_cloud_connector_federated_subject" {
+  command = plan
+
+  assert {
+    condition     = output.bgp_cloud_connector_federated_subject == "system:serviceaccount:openshift-bgp-cloud-connector:openshift-bgp-cloud-connector-controller-manager"
+    error_message = "CAPI federated subject must match the sibling bgp-cloud-connector manager ServiceAccount."
+  }
+}
+
 run "role_assignment_count" {
   command = plan
 
