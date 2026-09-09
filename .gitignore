@@ -52,6 +52,7 @@ docs/superpowers/
 .idea/
 .vscode/
 .cursor/
+.claude/
 .history/
 *.swp
 *.swo
