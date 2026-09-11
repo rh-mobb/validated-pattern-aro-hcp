@@ -1,14 +1,16 @@
 # OpenShift Virtualization full stack
 
-Two GitHub checkouts, one cluster. This installer provisions ARO HCP, GitOps, and a virt-ready node pool. Sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt) provisions Azure NetApp Files, Trident CSI, OpenShift Virtualization, Azure Route Server, and the CUDN BGP operator (in-cluster build of [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector)).
+Two GitHub checkouts, one cluster. This installer provisions ARO HCP, GitOps, and a virt-ready node pool. Sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt) provisions Azure NetApp Files, Trident CSI, OpenShift Virtualization, Azure Route Server, and the CUDN BGP operator (in-cluster build of [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector), pinned to a commit SHA in the sibling GitOps overlay).
 
 Do **not** create ANF, Trident CRs, CNV, or Azure Route Server in this repository. Do **not** install a second Argo CD.
+
+Agents (done-when, extra-hop, tmux): [`clusters/aro-virt/AGENTS.md`](../../clusters/aro-virt/AGENTS.md). This page is the operator command path.
 
 ## What you get
 
 | Layer | Repo | Result |
 |-------|------|--------|
-| Cluster | this repo, [`clusters/aro-virt`](../../clusters/aro-virt/) | Public API/ingress, `np-1` (`Standard_D4s_v6` × 2) + `np-virt` (`Standard_D8s_v6` × 2, labels `workload=virtualization` and `bgp_router=true`, Azure zone `1`) |
+| Cluster | this repo, [`clusters/aro-virt`](../../clusters/aro-virt/) | Public API/ingress, Fedora jump (`10.0.2.0/28`, set `jump_ssh_source_prefix`), `np-1` (`Standard_D4s_v6` × 2) + `np-virt` (`Standard_D8s_v6` × 2, labels `workload=virtualization` and `bgp_router=true`, Azure zone `1`) |
 | GitOps baseline | this repo `make cluster.aro-virt.bootstrap` | OpenShift GitOps, Web Terminal, Compliance, External Secrets |
 | Platform contract | `make cluster.aro-virt.platform` | Gitignored `clusters/aro-virt/platform.json` |
 | ANF + Trident + CNV + Route Server | sibling `make cluster.aro-virt.apply` then `.bootstrap` | Delegated subnet `10.0.3.0/24`, `RouteServerSubnet` `10.0.4.0/26`, ANF account/pool, StorageClass `anf-virt`, HyperConverged, bgp-cloud-connector |
@@ -30,7 +32,7 @@ Complete [Account prerequisites](../prerequisites/account.md) and [sibling prere
 | Extra | Notes |
 |-------|--------|
 | Two checkouts | This repo **and** `validated-pattern-openshift-virt` (or gitignored `references/validated-pattern-openshift-virt`) |
-| Dsv6 quota | **+16 vCPU** `Standard Dsv6` in `location` (`np-virt` × 2 × 8 cores) |
+| Dsv6 quota | **+16 vCPU** `Standard Dsv6` in `location` (`np-virt` × 2 × 8 cores). Jump adds **+2 vCPU** `Standard_D2s_v6` |
 | `Microsoft.NetApp` | Registered; ANF capacity quota. Sibling pool default is **1 TiB** Flexible (billable) |
 | Free CIDR | Installer `netapp_subnet_prefix` default `10.0.3.0/24` and `route_server_subnet_prefix` default `10.0.4.0/26` must not overlap worker, integration, jump (`10.0.2.0/28`), or each other |
 | Tools | Same as the installer, plus sibling Terraform `>= 1.9` |
@@ -59,8 +61,10 @@ mkdir -p tmp
 cp /path/to/pull-secret.txt tmp/pull-secret.txt
 
 make setup
+make cluster.aro-virt.jump-key           # clusters/aro-virt/jump + jump.pub
+# Set jump_ssh_source_prefix in terraform.tfvars to your public /32
 make cluster.aro-virt.plan
-make cluster.aro-virt.apply              # ~30–60 min; both node pools
+make cluster.aro-virt.apply              # ~30–60 min; both node pools + jump
 make cluster.aro-virt.kubeconfig         # 24h admin → .kube/config
 make cluster.aro-virt.external-auth      # console is 503 until this finishes
 ```
@@ -103,10 +107,10 @@ ARO_HCP_ROOT="${ARO_HCP_ROOT}" ARO_HCP_PROFILE=aro-virt \
   make cluster.aro-virt.plan
 ARO_HCP_ROOT="${ARO_HCP_ROOT}" ARO_HCP_PROFILE=aro-virt \
   make cluster.aro-virt.apply              # ANF subnet, RouteServerSubnet, ANF pool, Trident + BGP identities
-make cluster.aro-virt.bootstrap            # Argo Application rwx-storage + anf-platform-metadata + bgp-platform-metadata
+make cluster.aro-virt.bootstrap            # Argo Application virt-stack + anf-platform-metadata + bgp-platform-metadata
 ```
 
-One Argo CD instance (`openshift-gitops`). `cluster-config` (installer) and `rwx-storage` (sibling) are two Applications on the **same** application controller.
+One Argo CD instance (`openshift-gitops`). `cluster-config` (installer) and `virt-stack` (sibling) are two Applications on the **same** application controller.
 
 The sibling overlay binds OpenShift `cluster-admin` to `openshift-gitops-argocd-application-controller` so Argo can create Trident ServiceAccounts, `VolumeSnapshotClass`, `TridentOrchestrator`, and `HyperConverged`. The installer baseline does **not** grant that (ESO ignores ServiceAccount drift instead). Tightening that binding: [virt issue #6](https://github.com/rh-mobb/validated-pattern-openshift-virt/issues/6).
 
@@ -129,7 +133,7 @@ Sibling / GitOps:
 
 ```bash
 oc -n openshift-gitops get applications.argoproj.io
-# cluster-config and rwx-storage: Synced / Healthy
+# cluster-config and virt-stack: Synced / Healthy
 
 oc get sc
 # managed-csi (default)   disk.csi.azure.com
@@ -163,7 +167,7 @@ oc get ns virt --show-labels
 # cluster-udn=virt, k8s.ovn.org/primary-user-defined-network=
 ```
 
-Workloads that should be reachable from the jump / VNet go in namespace **`virt`** (primary CUDN `192.168.100.0/24`). Overlay IPs (`10.128.0.0/14`) are not advertised.
+Workloads that should be reachable from the jump / VNet go in namespace **`virt`** (primary CUDN `192.168.100.0/24`). Overlay IPs (`10.128.0.0/14`) are not advertised. Jump ping/HTTP to CUDN on **speakers and `np-1`** (extra-hop): agent playbook [`clusters/aro-virt/AGENTS.md`](../../clusters/aro-virt/AGENTS.md#extra-hop-e2e-after-sibling-bootstrap). OpenShift 4.21.8+ OVN (wrong-node egress) does **not** replace Azure `enableIPForwarding` on the VM/pod node.
 
 Smoke RWX (optional; ANF first volume often takes **5–15 minutes**, CSI may `DeadlineExceeded` then bind on retry):
 
@@ -219,12 +223,16 @@ This installer destroy does **not** call the sibling. It also does not delete a 
 
 | Symptom | Cause | What to do |
 |---------|--------|------------|
-| `rwx-storage` Forbidden on ServiceAccounts / `VolumeSnapshotClass` / `TridentOrchestrator` / `HyperConverged` | Default GitOps ClusterRole is get/list/watch | Confirm sibling overlay `rwx-storage-gitops-controller` (`cluster-admin`, sync-wave `-1`) is applied. Same controller as `cluster-config`. |
+| `virt-stack` Forbidden on ServiceAccounts / `VolumeSnapshotClass` / `TridentOrchestrator` / `HyperConverged` | Default GitOps ClusterRole is get/list/watch | Sibling bootstrap pre-applies `virt-stack-gitops-controller` before the Application. If missing: `oc apply -f …/gitops/base/gitops-controller-rbac.yaml`, then sync `virt-stack`. |
+| `azure-nic-ip-forwarding` `CreateContainerConfigError` (`configmap "azure-nic-ip-forwarding" not found`) | `bgp-from-metadata` Job did not finish before the DS (old `hook: Sync` ordering) | Upgrade sibling GitOps (Job is sync-wave `4`, DS wave `6`). `oc apply -f …/from-metadata-job.yaml` once, or delete the DS and sync `virt-stack`. |
 | `trident-from-metadata` Job hangs on `oc get tridentorchestrator` | Namespaced Role cannot get cluster-scoped CRs | Sibling ClusterRole `trident-from-metadata` (orchestrator + CRD get). |
 | PVC Pending, Azure volume `Creating` | ANF create is slow | Wait; do not treat the first CSI timeout as failure. |
 | Sibling destroy 409 on the pool | Volumes still exist | Delete ANF volumes, wait, destroy again. |
 | Sibling bootstrap `oc whoami` fails | Empty sibling `.kube/config` | `KUBECONFIG_PATH` / `KUBECONFIG` = installer `.kube/config`. |
 | Tags / region / name wrong | Leftover `TF_VAR_*` | Unset in the same shell; see step 0. |
+| `az aro hcp cluster request-credential` hangs; activity log Started/Accepted only | RP `requestAdminCredential` LRO never terminal (CLI waits on Location HTTP 202) | Wait or open an RP issue. Do not start a second request (REST or CLI) or revoke until you choose that. |
+| Jump → **all** CUDN IPs fail; ping **TTL exceeded** from a speaker (`10.0.0.x`); curl times out | OVN-K did not install `br-ex` ingress openflow for `192.168.100.0/24` (race when CUDN patch port is created) | BGP/Azure can still look fine. On a speaker: `ovs-ofctl dump-flows br-ex` must show `priority=300,in_port=1,nw_dst=192.168.100.0/24`. If missing: `oc -n openshift-ovn-kubernetes delete pod -l app=ovnkube-node`, wait for rollout, re-test jump. Agent playbook: [`clusters/aro-virt/AGENTS.md#if-jump-to-any-cudn-fails-ttl-exceeded--all-speakers-too`](../../clusters/aro-virt/AGENTS.md#if-jump-to-any-cudn-fails-ttl-exceeded--all-speakers-too). Do **not** set CNO `ipForwarding: Global`. |
+| Jump → CUDN on `np-1` fails; **speakers work** | NIC `enableIPForwarding` false (not the 4.21.8 OVN wrong-node-egress bug) | Sibling DS `azure-nic-ip-forwarding` / CAPI; do not label `np-1` `bgp_router=true`. Agent steps: [`clusters/aro-virt/AGENTS.md`](../../clusters/aro-virt/AGENTS.md#if-jump-to-non-speaker-cudn-fails-speakers-work) |
 | DataVolume clone stuck ~65%, CDI pod OOMKilled | CDI default ~600M memory limit | Sibling GitOps sets `storageWorkloads` on HyperConverged; verify `cdiconfig` → 4Gi. See [CDI storage workloads](cnv-cdi-storage-workloads.md). |
 | `disk.img: file exists` on clone retry | Partial clone after OOM | Delete DV, tmp PVCs in `openshift-virtualization-os-images`, related pods; retry after `cdiconfig` shows 4Gi. |
 
@@ -234,4 +242,5 @@ This installer destroy does **not** call the sibling. It also does not delete a 
 - [CDI clone/upload memory](cnv-cdi-storage-workloads.md)
 - [GitOps bootstrap](gitops.md)
 - [Architecture — virt workers](../architecture.md#openshift-virtualization-workers-clustersaro-virt)
+- Agent E2E: [`clusters/aro-virt/AGENTS.md`](../../clusters/aro-virt/AGENTS.md)
 - [Microsoft: CNV on ARO](https://learn.microsoft.com/en-us/azure/openshift/howto-create-openshift-virtualization)

@@ -8,7 +8,7 @@ Each directory under `clusters/` represents one ARO HCP deployment. Example prof
 |-----------|---------|
 | [`public/`](public/) | Public API and ingress; no jump box |
 | [`private/`](private/) | Private API and ingress (RFC1918 into the VNet); jump box enabled |
-| [`aro-virt/`](aro-virt/) | Public API; reserved ANF `10.0.3.0/24` + Route Server `10.0.4.0/26`; `np-virt` Azure Boost D8s_v6 with `workload=virtualization` and `bgp_router=true`. Full path: [Virt stack](../docs/guides/virt-stack.md) |
+| [`aro-virt/`](aro-virt/) | Public API; jump box on (`10.0.2.4` for CUDN BGP tests); reserved ANF `10.0.3.0/24` + Route Server `10.0.4.0/26`; `np-virt` Azure Boost D8s_v6 with `workload=virtualization` and `bgp_router=true`. Operator: [Virt stack](../docs/guides/virt-stack.md). Agent E2E: [`aro-virt/AGENTS.md`](aro-virt/AGENTS.md) |
 
 ## Usage
 
@@ -45,6 +45,7 @@ Per cluster (gitignored for operator dirs):
 - `infrastructure.tfstate` — Terraform state (`terraform init -backend-config=...`)
 - `.terraform/` — provider cache (`TF_DATA_DIR`)
 - `platform.json` — written by `make cluster.<name>.platform` for a sibling virt/storage stack
+- `logs/` — gitignored apply/destroy tee logs (agents; tmux)
 - `jump` / `jump.pub` — SSH keypair for the jump VM (when enabled)
 
 Never commit state files, private keys, kubeconfig, or Red Hat pull secrets.

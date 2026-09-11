@@ -37,7 +37,7 @@ You provide `clusters/<name>/terraform.tfvars`. Per-cluster state defaults to `c
 |---------|-----------|--------------|
 | Public API + ingress | [`clusters/public/`](../../clusters/public/) | `api_visibility = "Public"`, `ingress_visibility = "Public"`, `enable_jumpbox = false` |
 | Private API + ingress + jump | [`clusters/private/`](../../clusters/private/) | `api_visibility = "Private"`, `ingress_visibility = "Private"`, `enable_jumpbox = true`, set `jump_ssh_source_prefix` |
-| ARO + OpenShift Virtualization | [`clusters/aro-virt/`](../../clusters/aro-virt/) | Public API; `node_pools.np-virt` D8s_v6; reserved ANF CIDR. Full path: [Virt stack](../guides/virt-stack.md) |
+| ARO + OpenShift Virtualization | [`clusters/aro-virt/`](../../clusters/aro-virt/) | Public API; jump on (set `jump_ssh_source_prefix`); `np-virt` D8s_v6 `bgp_router=true`; reserved ANF + Route Server CIDRs. Full path: [Virt stack](../guides/virt-stack.md) |
 
 ## Deployment workflow
 

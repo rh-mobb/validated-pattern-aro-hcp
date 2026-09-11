@@ -3,6 +3,7 @@
 # make cluster.<name>.plan/apply/destroy pass this file with -var-file.
 #
 # Path:
+#   make cluster.aro-virt.jump-key          # then set jump_ssh_source_prefix to your /32
 #   make cluster.aro-virt.apply
 #   make cluster.aro-virt.kubeconfig
 #   make cluster.aro-virt.external-auth
@@ -10,7 +11,7 @@
 #   make cluster.aro-virt.platform
 #   # sibling validated-pattern-openshift-virt:
 #   ARO_HCP_ROOT=… ARO_HCP_PROFILE=aro-virt make cluster.aro-virt.apply
-#   make cluster.aro-virt.bootstrap          # Trident + kubevirt-hyperconverged
+#   make cluster.aro-virt.bootstrap          # Trident + CNV + Route Server + BGP sample
 #
 # Cluster-config repo (org group cluster-admin): GITOPS_REPO=…cluster-config.git
 # GITOPS_SOURCE_ROOT=overlays make cluster.aro-virt.bootstrap
@@ -49,7 +50,10 @@ node_pools = {
 api_visibility     = "Public"
 ingress_visibility = "Public"
 
-enable_jumpbox = false
+enable_jumpbox = true
+# Required when enable_jumpbox is true. SSH 22 from this CIDR only (your public /32).
+# Needed to test VNet → CUDN from 10.0.2.4 (see clusters/aro-virt/AGENTS.md extra-hop).
+# jump_ssh_source_prefix = "203.0.113.1/32"
 
 # Reserved CIDRs for the sibling virt stack (not created here).
 # netapp_subnet_prefix         = "10.0.3.0/24"

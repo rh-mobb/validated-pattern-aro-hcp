@@ -129,7 +129,7 @@ make fmt lint test       # before every commit
 - Conventional Commits: `type(scope): description`
 - Update [`CHANGELOG.md`](CHANGELOG.md) in the same commit as operator-visible changes; do not log debug/WIP iterations
 - Never commit secrets, operator `clusters/*/terraform.tfvars` (except committed examples), `*.tfstate`, or kubeconfig files
-- See [`AGENTS.md`](AGENTS.md) for agent-specific rules
+- See [`AGENTS.md`](AGENTS.md) for agent-specific rules (Live Azure, tmux). Virt E2E: [`clusters/aro-virt/AGENTS.md`](clusters/aro-virt/AGENTS.md).
 
 ## Operator workflow
 

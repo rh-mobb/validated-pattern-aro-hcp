@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Federated credential `capi-bgp-cloud-connector` on `cluster-api-azure` for sibling [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector) (NIC `enableIPForwarding` in the managed RG). `platform.json` publishes `cluster_api_azure_client_id`. Least-privilege follow-up: [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20)
 - [CDI clone/upload memory](docs/guides/cnv-cdi-storage-workloads.md) (`storageWorkloads`; sibling HyperConverged sets 4Gi)
 - Operator guide [Virt stack](docs/guides/virt-stack.md): two-checkout e2e for ARO HCP + sibling ANF/Trident/CNV (verify, GitOps RBAC, destroy including leftover ANF volumes)
+- [`clusters/aro-virt/AGENTS.md`](clusters/aro-virt/AGENTS.md) — agent E2E playbook (extra-hop, OVN `br-ex` race, sibling destroy order)
 
 - `make cluster.<name>.platform` writes gitignored `clusters/<name>/platform.json` (contract v1) for sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt)
 - Reserved `netapp_subnet_prefix` default `10.0.3.0/24` (not created here; must not overlap worker, integration, or jump)
@@ -43,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Extra node pools live in `node_pools` (Terraform), not `make cluster.<name>.virt-pool`
 - Destroy state-rms **all** Terraform `nodePools` instances (OCPBUGS-86702), then `terraform destroy`
 - Docs: sibling virt overlay binds `cluster-admin` to the shared GitOps application controller; this installer keeps the default least-privilege ClusterRole ([virt #6](https://github.com/rh-mobb/validated-pattern-openshift-virt/issues/6))
+- [`docs/guides/virt-stack.md`](docs/guides/virt-stack.md) troubleshooting for `virt-stack` GitOps RBAC, metadata Jobs, OVN ingress race, and `np-1` NIC forwarding; `clusters/aro-virt` example enables jump box for CUDN extra-hop tests
 
 - Destroy a sibling ANF/Trident stack first; `make cluster.<name>.destroy` does not call it
 - Deployer is Entra app and service-principal **owner** so Graph can add the client secret (`Application.ReadWrite.OwnedBy` cannot manage an ownerless app)
@@ -63,6 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `config/cluster.env.example` and monolithic `terraform/*.tf` resources (replaced by modules + per-cluster tfvars)
 
 ### Fixed
+- `scripts/credentials.sh` — parse `Location` from `az rest --verbose` output when requesting kubeconfig via REST
 - `oc login --exec-plugin=oc-oidc` AADSTS7000218: Entra public-client flows + native `http://localhost` so PKCE works without `--client-secret`
 - `make cluster.<profile>.kubeconfig` failed with “Cluster public does not exist” when GNU Make exported `CLUSTER_NAME` from the profile name
 - `make cluster.<profile>.destroy` skipped node-pool state-rm when `TF_DATA_DIR` pointed at the wrong cluster
