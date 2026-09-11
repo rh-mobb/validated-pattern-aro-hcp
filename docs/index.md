@@ -16,6 +16,7 @@ This repository uses reusable Terraform modules and a **directory-per-cluster** 
 | Inspect Azure resources, RBAC scopes, and diagrams | [Architecture](architecture.md) |
 | Network privacy (RFC1918 / Private Endpoints) | [Architecture — Network privacy](architecture.md#network-privacy) |
 | Deploy ARO + OpenShift Virtualization (ANF + CNV) | [Virt stack](guides/virt-stack.md) — two checkouts, `clusters/aro-virt`, sibling apply/bootstrap |
+| Deploy virt E2E with a local AI agent | [Quick start — OpenShift Virtualization](getting-started/quick-start.md#openshift-virtualization-validated-full-stack) (clone both repos; agent follows `AGENTS.md` + `clusters/aro-virt/AGENTS.md`) |
 | Choose cluster profiles (public vs private) | [Cluster configurations](../clusters/README.md) |
 
 ## Architecture at a glance
