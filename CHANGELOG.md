@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Destroy state-rms **all** Terraform `nodePools` instances (OCPBUGS-86702), then `terraform destroy`
 - Docs: sibling virt overlay binds `cluster-admin` to the shared GitOps application controller; this installer keeps the default least-privilege ClusterRole ([virt #6](https://github.com/rh-mobb/validated-pattern-openshift-virt/issues/6))
 - [`docs/guides/virt-stack.md`](docs/guides/virt-stack.md) troubleshooting for `virt-stack` GitOps RBAC, metadata Jobs, OVN ingress race, and `np-1` NIC forwarding; `clusters/aro-virt` example enables jump box for CUDN extra-hop tests
+- [Quick start](docs/getting-started/quick-start.md) — AI-assisted virt E2E path (clone both repos; agent follows `AGENTS.md` and `clusters/aro-virt/AGENTS.md`)
 
 - Destroy a sibling ANF/Trident stack first; `make cluster.<name>.destroy` does not call it
 - Deployer is Entra app and service-principal **owner** so Graph can add the client secret (`Application.ReadWrite.OwnedBy` cannot manage an ownerless app)

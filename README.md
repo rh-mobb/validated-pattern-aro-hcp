@@ -61,7 +61,7 @@ make cluster.my-cluster.kubeconfig      # admin creds (24h TTL)
 make cluster.my-cluster.external-auth   # Entra + console; cluster-admin for you unless SKIP_RBAC_USER=1
 ```
 
-Committed examples: [`clusters/public`](clusters/public/terraform.tfvars) (public API/ingress), [`clusters/private`](clusters/private/terraform.tfvars) (private + jump box), and [`clusters/aro-virt`](clusters/aro-virt/terraform.tfvars) (CNV-ready workers). Virt full stack (this repo + sibling ANF/CNV): **[Virt stack](docs/guides/virt-stack.md)**. The sibling GitOps overlay sets HyperConverged `storageWorkloads` (4Gi) so CDI clone/upload pods do not OOM on large images (default ~600M) — see **[CDI storage workloads](docs/guides/cnv-cdi-storage-workloads.md)**. See [`clusters/README.md`](clusters/README.md).
+Committed examples: [`clusters/public`](clusters/public/terraform.tfvars) (public API/ingress), [`clusters/private`](clusters/private/terraform.tfvars) (private + jump box), and [`clusters/aro-virt`](clusters/aro-virt/terraform.tfvars) (CNV-ready workers). Virt full stack (this repo + sibling ANF/CNV): **[Virt stack](docs/guides/virt-stack.md)** — or clone both repos and ask a local AI agent ([Quick start — virt E2E](docs/getting-started/quick-start.md#openshift-virtualization-validated-full-stack); agent playbooks in [`AGENTS.md`](AGENTS.md) and [`clusters/aro-virt/AGENTS.md`](clusters/aro-virt/AGENTS.md)). The sibling GitOps overlay sets HyperConverged `storageWorkloads` (4Gi) so CDI clone/upload pods do not OOM on large images (default ~600M) — see **[CDI storage workloads](docs/guides/cnv-cdi-storage-workloads.md)**. See [`clusters/README.md`](clusters/README.md).
 
 ## Makefile targets
 
