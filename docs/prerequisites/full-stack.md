@@ -37,7 +37,7 @@ You provide `clusters/<name>/terraform.tfvars`. Per-cluster state defaults to `c
 |---------|-----------|--------------|
 | Public API + ingress | [`clusters/public/`](../../clusters/public/) | `api_visibility = "Public"`, `ingress_visibility = "Public"`, `enable_jumpbox = false` |
 | Private API + ingress + jump | [`clusters/private/`](../../clusters/private/) | `api_visibility = "Private"`, `ingress_visibility = "Private"`, `enable_jumpbox = true`, set `jump_ssh_source_prefix` |
-| ARO + OpenShift Virtualization | [`clusters/aro-virt/`](../../clusters/aro-virt/) | Public API; `node_pools.np-virt` D8s_v6; reserved ANF CIDR. Full path: [Virt stack](../guides/virt-stack.md) |
+| ARO + OpenShift Virtualization | [`clusters/aro-virt/`](../../clusters/aro-virt/) | Public API; jump on (set `jump_ssh_source_prefix`); `np-virt` D8s_v6 `bgp_router=true`; reserved ANF + Route Server CIDRs. Full path: [Virt stack](../guides/virt-stack.md) |
 
 ## Deployment workflow
 
@@ -106,7 +106,7 @@ Permissions fall into three planes: **Azure RBAC**, **Microsoft Entra ID**, and 
 | `Microsoft.Network/*` on RG | VNet, subnets, NSG, associations |
 | `Microsoft.KeyVault/vaults/write`, `.../keys/write`, `.../secrets/write` | Etcd KMS Key Vault and key; optional `redhat-pull-secret` when `pull_secret_path` is set |
 | `Microsoft.ManagedIdentity/userAssignedIdentities/write` | 13 HCP identities + ESO workload identity |
-| `Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials/write` | ESO federated credential (cluster OIDC issuer → named ServiceAccount) |
+| `Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials/write` | ESO federated credential and CAPI federated credential for bgp-cloud-connector (cluster OIDC issuer → named ServiceAccounts) |
 | `Microsoft.Authorization/roleAssignments/write` | 28 operator assignments + ESO Key Vault Secrets User + Key Vault Administrator for deployer (**requires UAA or Owner**) |
 | `Microsoft.RedHatOpenShift/hcpOpenShiftClusters/write` | Cluster ARM resource |
 | `Microsoft.RedHatOpenShift/hcpOpenShiftClusters/nodePools/write` | Default node pool |

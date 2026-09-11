@@ -69,9 +69,15 @@ variable "jump_subnet_prefix" {
 }
 
 variable "netapp_subnet_prefix" {
-  description = "Reserved CIDR for a sibling Azure NetApp Files delegated subnet (not created here). Default 10.0.3.0/24; must not overlap worker, integration, or jump."
+  description = "Reserved CIDR for a sibling Azure NetApp Files delegated subnet (not created here). Default 10.0.3.0/24; must not overlap worker, integration, jump, or route_server_subnet_prefix."
   type        = string
   default     = "10.0.3.0/24"
+}
+
+variable "route_server_subnet_prefix" {
+  description = "Reserved CIDR for a sibling Azure Route Server subnet named RouteServerSubnet (not created here). Default 10.0.4.0/26 (Azure minimum); must not overlap worker, integration, jump, or netapp_subnet_prefix."
+  type        = string
+  default     = "10.0.4.0/26"
 }
 
 variable "enable_jumpbox" {

@@ -23,6 +23,10 @@ locals {
   eso_service_account   = "external-secrets-sa"
   eso_federated_subject = "system:serviceaccount:${local.eso_namespace}:${local.eso_service_account}"
 
+  bgp_cloud_connector_namespace         = "openshift-bgp-cloud-connector"
+  bgp_cloud_connector_service_account   = "openshift-bgp-cloud-connector-controller-manager"
+  bgp_cloud_connector_federated_subject = "system:serviceaccount:${local.bgp_cloud_connector_namespace}:${local.bgp_cloud_connector_service_account}"
+
   identity_names = {
     service                  = "${var.cluster_name}-service"
     cluster_api_azure        = "${var.cluster_name}-cluster-api-azure"

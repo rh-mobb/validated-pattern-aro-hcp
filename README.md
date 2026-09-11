@@ -61,7 +61,7 @@ make cluster.my-cluster.kubeconfig      # admin creds (24h TTL)
 make cluster.my-cluster.external-auth   # Entra + console; cluster-admin for you unless SKIP_RBAC_USER=1
 ```
 
-Committed examples: [`clusters/public`](clusters/public/terraform.tfvars) (public API/ingress), [`clusters/private`](clusters/private/terraform.tfvars) (private + jump box), and [`clusters/aro-virt`](clusters/aro-virt/terraform.tfvars) (CNV-ready workers). Virt full stack (this repo + sibling ANF/CNV): **[Virt stack](docs/guides/virt-stack.md)**. See [`clusters/README.md`](clusters/README.md).
+Committed examples: [`clusters/public`](clusters/public/terraform.tfvars) (public API/ingress), [`clusters/private`](clusters/private/terraform.tfvars) (private + jump box), and [`clusters/aro-virt`](clusters/aro-virt/terraform.tfvars) (CNV-ready workers). Virt full stack (this repo + sibling ANF/CNV): **[Virt stack](docs/guides/virt-stack.md)**. The sibling GitOps overlay sets HyperConverged `storageWorkloads` (4Gi) so CDI clone/upload pods do not OOM on large images (default ~600M) — see **[CDI storage workloads](docs/guides/cnv-cdi-storage-workloads.md)**. See [`clusters/README.md`](clusters/README.md).
 
 ## Makefile targets
 
@@ -129,7 +129,7 @@ make fmt lint test       # before every commit
 - Conventional Commits: `type(scope): description`
 - Update [`CHANGELOG.md`](CHANGELOG.md) in the same commit as operator-visible changes; do not log debug/WIP iterations
 - Never commit secrets, operator `clusters/*/terraform.tfvars` (except committed examples), `*.tfstate`, or kubeconfig files
-- See [`AGENTS.md`](AGENTS.md) for agent-specific rules
+- See [`AGENTS.md`](AGENTS.md) for agent-specific rules (Live Azure, tmux). Virt E2E: [`clusters/aro-virt/AGENTS.md`](clusters/aro-virt/AGENTS.md).
 
 ## Operator workflow
 

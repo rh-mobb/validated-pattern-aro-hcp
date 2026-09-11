@@ -16,7 +16,7 @@ TF_VARS_TO_UNSET := TF_VAR_location TF_VAR_cluster_name TF_VAR_resource_group_na
 	TF_VAR_api_visibility TF_VAR_ingress_visibility \
 	TF_VAR_enable_jumpbox TF_VAR_jump_ssh_source_prefix TF_VAR_jump_ssh_public_key \
 	TF_VAR_jump_ssh_private_key_path TF_VAR_pull_secret_path TF_VAR_pull_secret_key_vault_secret_name \
-	TF_VAR_netapp_subnet_prefix
+	TF_VAR_netapp_subnet_prefix TF_VAR_route_server_subnet_prefix
 
 .PHONY: help fmt lint test setup bootstrap docs-venv docs-preview docs-serve docs-build \
 	cluster.%

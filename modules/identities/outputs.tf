@@ -84,3 +84,13 @@ output "eso_federated_subject" {
   description = "OIDC subject Terraform trusts. GitOps must create this ServiceAccount name."
   value       = local.eso_federated_subject
 }
+
+output "cluster_api_azure_client_id" {
+  description = "Client ID of cluster-api-azure. Sibling BGPCloudConfiguration uses this as networkInterfaceClientID."
+  value       = azurerm_user_assigned_identity.cluster_api_azure.client_id
+}
+
+output "bgp_cloud_connector_federated_subject" {
+  description = "OIDC subject Terraform trusts on cluster-api-azure for bgp-cloud-connector NIC writes."
+  value       = local.bgp_cloud_connector_federated_subject
+}

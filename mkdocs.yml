@@ -76,5 +76,6 @@ nav:
       - External Auth (Entra ID): guides/external-auth-entra-id.md
       - GitOps bootstrap: guides/gitops.md
       - OpenShift Virtualization full stack: guides/virt-stack.md
+      - CDI clone/upload memory: guides/cnv-cdi-storage-workloads.md
   - Reference:
       - Architecture: architecture.md

@@ -56,6 +56,11 @@ output "eso_client_id" {
   value       = module.identities.eso_client_id
 }
 
+output "cluster_api_azure_client_id" {
+  description = "CAPI UAMI client ID. Sibling BGPCloudConfiguration spec.azure.networkInterfaceClientID."
+  value       = module.identities.cluster_api_azure_client_id
+}
+
 output "oidc_issuer_url" {
   description = "Cluster OIDC issuer used by the ESO federated identity credential."
   value       = module.cluster.oidc_issuer_url
@@ -229,6 +234,11 @@ output "netapp_subnet_prefix" {
   value       = var.netapp_subnet_prefix
 }
 
+output "route_server_subnet_prefix" {
+  description = "Reserved Azure Route Server subnet CIDR (RouteServerSubnet). Not created in this root; sibling module consumes it."
+  value       = var.route_server_subnet_prefix
+}
+
 output "platform" {
   description = "Versioned contract for a sibling virt/storage stack (terraform output -json platform)."
   value = {
@@ -249,18 +259,20 @@ output "platform" {
       nsg_id               = module.network.nsg_id
       jump_subnet_prefix   = var.jump_subnet_prefix
       reserved = {
-        netapp_subnet_prefix = var.netapp_subnet_prefix
+        netapp_subnet_prefix       = var.netapp_subnet_prefix
+        route_server_subnet_prefix = var.route_server_subnet_prefix
       }
     }
-    oidc_issuer_url   = module.cluster.oidc_issuer_url
-    key_vault_id      = module.identities.key_vault_id
-    key_vault_name    = module.identities.key_vault_name
-    key_vault_uri     = module.identities.key_vault_uri
-    eso_client_id     = module.identities.eso_client_id
-    api_url           = module.cluster.api_url
-    api_visibility    = var.api_visibility
-    cluster_version   = var.cluster_version
-    node_pool_version = var.node_pool_version
+    oidc_issuer_url             = module.cluster.oidc_issuer_url
+    key_vault_id                = module.identities.key_vault_id
+    key_vault_name              = module.identities.key_vault_name
+    key_vault_uri               = module.identities.key_vault_uri
+    eso_client_id               = module.identities.eso_client_id
+    cluster_api_azure_client_id = module.identities.cluster_api_azure_client_id
+    api_url                     = module.cluster.api_url
+    api_visibility              = var.api_visibility
+    cluster_version             = var.cluster_version
+    node_pool_version           = var.node_pool_version
     node_pools = {
       for name, p in var.node_pools : name => {
         vm_size           = p.vm_size

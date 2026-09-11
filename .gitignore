@@ -63,6 +63,10 @@ tests/bats/tmp/
 .venv-docs/
 site/
 
+# Slidev
+slides/*/node_modules/
+slides/*/dist/
+
 # Red Hat pull secrets and operator scratch (never commit)
 pull-secret.txt
 /tmp/

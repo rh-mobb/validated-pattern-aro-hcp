@@ -39,8 +39,9 @@ request_via_rest() {
     --verbose 2>"${headers_file}" || true
 
   local async_url location_url
+  # az rest --verbose writes "INFO:     'Location': 'https://...'" (not "Location:").
   async_url="$(grep -i "Azure-AsyncOperation" "${headers_file}" | head -1 | sed -n "s/.*'\(https:[^']*\)'.*/\1/p")"
-  location_url="$(grep -i "^Location:" "${headers_file}" | head -1 | sed -n "s/.*'\(https:[^']*\)'.*/\1/p")"
+  location_url="$(grep -i "'Location'" "${headers_file}" | head -1 | sed -n "s/.*'\(https:[^']*\)'.*/\1/p")"
 
   [[ -n "${async_url}" ]] || die "Failed to extract Azure-AsyncOperation URL"
   [[ -n "${location_url}" ]] || die "Failed to extract Location URL"
