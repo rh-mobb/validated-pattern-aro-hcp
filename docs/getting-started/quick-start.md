@@ -90,9 +90,27 @@ make cluster.my-private.external-auth
 
 Teardown for private also removes the customer Private DNS zone (`private-dns-delete` runs automatically from `destroy`).
 
-## OpenShift Virtualization
+## OpenShift Virtualization (validated full stack)
 
-Use [`clusters/aro-virt`](../../clusters/aro-virt/) plus the sibling virt/storage repo (ANF + Trident + CNV). That is a **second IaC run**, not this apply. Full command sequence, verify, and destroy: [Virt stack](../guides/virt-stack.md). Extra quota: **+16 vCPU** Dsv6 and ANF capacity.
+Two GitHub checkouts, one cluster: this installer ([`clusters/aro-virt`](../../clusters/aro-virt/)) plus sibling [`validated-pattern-openshift-virt`](https://github.com/rh-mobb/validated-pattern-openshift-virt) (ANF, Trident, CNV, Azure Route Server, CUDN BGP). The sibling is a **second IaC run** after `make cluster.aro-virt.platform`. Extra quota: **+18 vCPU** Dsv6 (**+16** for `np-virt`, **+2** for the jump box) and ANF capacity. Jump needs `make cluster.aro-virt.jump-key` and `jump_ssh_source_prefix` in tfvars before apply.
+
+### Option A — AI-assisted (Cursor, Claude Code, …)
+
+```bash
+git clone https://github.com/rh-mobb/validated-pattern-aro-hcp.git
+cd validated-pattern-aro-hcp
+git clone https://github.com/rh-mobb/validated-pattern-openshift-virt.git references/validated-pattern-openshift-virt
+mkdir -p tmp && cp /path/to/pull-secret.txt tmp/pull-secret.txt
+# Edit clusters/aro-virt/terraform.tfvars — location, jump_ssh_source_prefix (/32)
+```
+
+Open the repo in your editor and ask the local agent to **deploy the `aro-virt` E2E validated virt stack end to end**. It should follow [`AGENTS.md`](../../AGENTS.md) and [`clusters/aro-virt/AGENTS.md`](../../clusters/aro-virt/AGENTS.md): preflight (`TF_VAR_*`, subscription, plan), tmux for long apply/destroy, installer apply → kubeconfig → external-auth → bootstrap → platform → sibling apply/bootstrap → extra-hop verify from the jump.
+
+You still need [account prerequisites](../prerequisites/account.md) (allow-list, RBAC, quota) and Entra rights for external-auth. The agent should stop and ask before mutating Azure or when an ARM operation is stuck.
+
+### Option B — Operator guide
+
+Step-by-step `make` commands, verify, and troubleshooting: [Virt stack](../guides/virt-stack.md).
 
 ## Teardown
 
