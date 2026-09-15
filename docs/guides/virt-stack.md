@@ -194,7 +194,7 @@ CNV golden images in `openshift-virtualization-os-images` also provision on `anf
 
 ## 4. Destroy
 
-**Sibling first.** Cleanup deletes BGP CRs (while the operator can still remove Azure peerings) then `anf-virt` PVCs (timeout 180s each). ANF volume delete is slower than that; leftover volumes make `terraform destroy` fail on the capacity pool and NetApp subnet.
+**Sibling first.** `trident-cleanup.sh` (via `make cluster.aro-virt.destroy`) deletes the sibling **`virt-stack` Argo CD Application** first so GitOps does not recreate BGP CRs, then drains BGP CRs (while the operator can still remove Azure peerings), then `anf-virt` PVCs (timeout 180s each). ANF volume delete is slower than that; leftover volumes make `terraform destroy` fail on the capacity pool and NetApp subnet.
 
 ```bash
 # sibling checkout
