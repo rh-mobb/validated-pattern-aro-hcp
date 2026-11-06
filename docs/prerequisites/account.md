@@ -76,7 +76,7 @@ See [Full-stack deployment — permissions by step](full-stack.md#permissions-by
 | Tool | Minimum | Purpose |
 |------|---------|---------|
 | Azure CLI | >= 2.67.0 | Azure + Entra (`az ad`) |
-| `az aro hcp` extension | via `make setup` | Credentials, external-auth, extra node pools |
+| **`az extension add --name aro`** (unified) | >= 1.0.14 recommended | `az aro hcp` — credentials, external-auth, extra node pools. **Do not** install standalone **`aro-hcp`**; it shadows `aro` and breaks admin kubeconfig (`certificateSigningRequest`). |
 | Terraform | >= 1.9 | Infrastructure |
 | `jq` | any recent | Scripts, credential parsing |
 | `oc` | >= 4.20 | External-auth console secret, GitOps bootstrap, optional RBAC |
@@ -87,6 +87,13 @@ Install the CLI extension:
 
 ```bash
 make setup
+```
+
+If `make cluster.<name>.kubeconfig` fails with `certificateSigningRequest`, remove the legacy wheel extension and use unified `aro` only:
+
+```bash
+az extension remove --name aro-hcp
+az extension add --name aro --upgrade
 ```
 
 ## Firewall allowlist

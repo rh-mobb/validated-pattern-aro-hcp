@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Data-plane file CSI and image registry managed identities now receive VNet/subnet join RBAC required by ARM `DataPlaneIdentitiesPermissionsValidation` at cluster create
+- `make cluster.<name>.kubeconfig` rejects standalone `az extension aro-hcp` and documents unified `az extension aro` (admin credential CSR)
+
+### Changed
+- `make setup` installs unified `az extension aro --upgrade` instead of the legacy bennerv `aro-hcp` wheel
+
 ### Added
 - Reserved `route_server_subnet_prefix` default `10.0.4.0/26` (not created here; sibling creates `RouteServerSubnet`). Overlap checks vs VNet, worker, integration, jump, and ANF; Azure minimum `/26`
 - Federated credential `capi-bgp-cloud-connector` on `cluster-api-azure` for sibling [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector) (NIC `enableIPForwarding` in the managed RG). `platform.json` publishes `cluster_api_azure_client_id`. Least-privilege follow-up: [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20)
