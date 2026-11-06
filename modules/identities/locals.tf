@@ -135,8 +135,11 @@ locals {
     { key = "service-fed-dp-file", principal = "service", role = "federated_credential", scope_identity = "dp_file_csi_driver" },
     { key = "service-fed-dp-image", principal = "service", role = "federated_credential", scope_identity = "dp_image_registry" },
 
+    { key = "dp-file-vnet", principal = "dp_file_csi_driver", role = "file_storage_operator", scope = "vnet" },
     { key = "dp-file-subnet", principal = "dp_file_csi_driver", role = "file_storage_operator", scope = "subnet" },
     { key = "dp-file-nsg", principal = "dp_file_csi_driver", role = "file_storage_operator", scope = "nsg" },
+    { key = "dp-image-vnet", principal = "dp_image_registry", role = "image_registry_operator", scope = "vnet" },
+    { key = "dp-image-subnet", principal = "dp_image_registry", role = "image_registry_operator", scope = "subnet" },
   ]
 
   assignment_specs_map = {

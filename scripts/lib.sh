@@ -126,6 +126,28 @@ subscription_id() {
   az account show --query id -o tsv
 }
 
+# Standalone "aro-hcp" (legacy wheel) registers the same commands as unified "aro" but
+# does not send certificateSigningRequest on requestAdminCredential.
+assert_unified_aro_extension_for_hcp() {
+  require_cmd az
+  require_cmd jq
+  if az extension list -o json 2>/dev/null | jq -e 'any(.[]; .name == "aro-hcp")' >/dev/null; then
+    die "Standalone az extension \"aro-hcp\" is installed and shadows the unified \"aro\" extension. Admin credentials require unified aro (CSR support). Remove the legacy extension and install or upgrade aro:
+
+  az extension remove --name aro-hcp
+  az extension add --name aro --upgrade
+
+See docs/prerequisites/account.md#operator-tooling"
+  fi
+  if ! az aro hcp -h >/dev/null 2>&1; then
+    die "az aro hcp is not available. Install the unified aro extension:
+
+  az extension add --name aro --upgrade
+
+See docs/prerequisites/account.md#operator-tooling"
+  fi
+}
+
 cluster_exists() {
   az aro hcp cluster show \
     --resource-group "${RESOURCE_GROUP}" \

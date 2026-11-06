@@ -148,7 +148,7 @@ flowchart TB
 
 | Stage | Tool | What it creates |
 |-------|------|-----------------|
-| `make setup` | `scripts/setup.sh` | Installs the `az aro hcp` CLI extension. No Azure resources. |
+| `make setup` | `scripts/setup.sh` | Installs or upgrades unified **`az extension add --name aro`** (includes `az aro hcp`). Fails if standalone **`aro-hcp`** is installed. No Azure resources. |
 | `make cluster.<name>.apply` | Terraform `azurerm` + `azapi` + `azuread` | Customer RG, network, Key Vault, etcd key, optional `redhat-pull-secret`, 13 HCP identities, ESO workload identity + federated credential, CAPI federated credential for bgp-cloud-connector, 28 operator role assignments + Key Vault Secrets User for ESO, `hcpOpenShiftClusters`, `nodePools` from `node_pools` (default `np-1`), Entra app + `externalAuths/entra` + Key Vault client secret (unless `enable_external_auth = false`). |
 | `make cluster.<name>.kubeconfig` | `az aro hcp cluster request-credential` | Local `.kube/config` only. Admin credential TTL is 24 hours. |
 | `make cluster.<name>.external-auth` | `oc` + optional Entra fallback | Console secret in `openshift-config`, break-glass `cluster-admin` CRB, GitOps OIDC patch. When Terraform already created the app, does **not** create or rotate Entra. |
@@ -584,12 +584,15 @@ CAPI, CCM, ingress, file CSI, and image registry are assigned on the **VNet** (a
 | `service-fed-dp-disk` | service | Federated credential | dp-disk-csi-driver identity |
 | `service-fed-dp-file` | service | Federated credential | dp-file-csi-driver identity |
 | `service-fed-dp-image` | service | Federated credential | dp-image-registry identity |
+| `dp-file-vnet` | dp-file-csi-driver | File storage operator | VNet |
 | `dp-file-subnet` | dp-file-csi-driver | File storage operator | Worker subnet |
 | `dp-file-nsg` | dp-file-csi-driver | File storage operator | NSG |
+| `dp-image-vnet` | dp-image-registry | Image registry operator | VNet |
+| `dp-image-subnet` | dp-image-registry | Image registry operator | Worker subnet |
 
-Control-plane disk CSI has **no** network-scoped Azure role in this set — only service Reader on the identity. Data-plane file CSI is the DP identity that receives file-storage operator on subnet + NSG.
+Control-plane disk CSI has **no** network-scoped Azure role in this set — only service Reader on the identity. Data-plane file CSI receives file-storage operator on VNet, worker subnet, and NSG; data-plane image registry receives image-registry operator on VNet and worker subnet (ARM `DataPlaneIdentitiesPermissionsValidation` requires `join/action` on the VNet and subnet).
 
-`${cluster_name}-eso` has **Key Vault Secrets User** on the customer vault (not in the 28-row table). Terraform also creates federated identity credential `eso-external-secrets` on that identity after the cluster exists: issuer is `platform.issuerUrl`, audience `api://AzureADTokenExchange`, subject `system:serviceaccount:external-secrets-operator:external-secrets-sa`. The ServiceAccount does not need to exist yet. Bootstrap publishes those values into ConfigMap `openshift-gitops/aro-platform-metadata`; a GitOps Job annotates the ServiceAccount. Do not put per-cluster client IDs or vault URLs into committed `gitops/overlays/`.
+`${cluster_name}-eso` has **Key Vault Secrets User** on the customer vault (not in the 31-row table). Terraform also creates federated identity credential `eso-external-secrets` on that identity after the cluster exists: issuer is `platform.issuerUrl`, audience `api://AzureADTokenExchange`, subject `system:serviceaccount:external-secrets-operator:external-secrets-sa`. The ServiceAccount does not need to exist yet. Bootstrap publishes those values into ConfigMap `openshift-gitops/aro-platform-metadata`; a GitOps Job annotates the ServiceAccount. Do not put per-cluster client IDs or vault URLs into committed `gitops/overlays/`.
 
 Terraform also creates federated identity credential `capi-bgp-cloud-connector` on **`cluster-api-azure`** (not a 14th customer MI): same issuer and audience, subject `system:serviceaccount:openshift-bgp-cloud-connector:openshift-bgp-cloud-connector-controller-manager`. [bgp-cloud-connector](https://github.com/openshift/bgp-cloud-connector) `spec.azure.networkInterfaceClientID` uses that client ID (`platform.cluster_api_azure_client_id`) to enable NIC IP forwarding on speaker nodes. Worker NICs live in the **managed RG** (RP deny assignment); a customer MI cannot patch them. **Blast radius:** the operator can then act as full CAPI in the managed RG (VMs, NICs, disks), not only IP forwarding. Least-privilege follow-up: [#20](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/20).
 
@@ -619,13 +622,16 @@ flowchart LR
     net["cloud-network-config"] --> vnet
     net --> subnet
     kms["kms"] --> kv
-    dpFile["dp-file-csi-driver"] --> subnet
+    dpFile["dp-file-csi-driver"] --> vnet
+    dpFile --> subnet
     dpFile --> nsg
+    dpImg["dp-image-registry"] --> vnet
+    dpImg --> subnet
 
     classDef fillScope fill:#fff4e6,stroke:#e67700,color:#000
     classDef fillId fill:#e7f5ff,stroke:#1971c2,color:#000
     class vnet,nsg,subnet,kv,mi fillScope
-    class svc,capi,cpo,ccm,ing,file,img,net,kms,dpFile fillId
+    class svc,capi,cpo,ccm,ing,file,img,net,kms,dpFile,dpImg fillId
 ```
 
 ## Cluster ARM resource
@@ -786,7 +792,7 @@ flowchart TB
 
 ### Admin kubeconfig
 
-`scripts/credentials.sh request` prefers `az aro hcp cluster request-credential --admin`, then falls back to REST `requestAdminCredential` (`2026-06-30-preview`). Output path: `KUBECONFIG_PATH` (default `.kube/config`). Revoke with `make revoke-credentials`. This does not create a durable Azure resource.
+`scripts/credentials.sh request` prefers `az aro hcp cluster request-credential --admin` (unified **`aro`** extension only — standalone **`aro-hcp`** is rejected), then falls back to REST `requestAdminCredential` (`2026-06-30-preview`). Output path: `KUBECONFIG_PATH` (default `.kube/config`). Revoke with `make revoke-credentials`. This does not create a durable Azure resource.
 
 ### External authentication
 

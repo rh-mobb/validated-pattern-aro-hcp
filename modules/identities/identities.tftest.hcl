@@ -41,8 +41,8 @@ run "role_assignment_count" {
   command = plan
 
   assert {
-    condition     = length(local.assignment_specs) == 28
-    error_message = "Expected 28 role assignments per 0.0.2 guide."
+    condition     = length(local.assignment_specs) == 31
+    error_message = "Expected 31 role assignments (0.0.2 guide + DP file/image VNet/subnet join)."
   }
 }
 

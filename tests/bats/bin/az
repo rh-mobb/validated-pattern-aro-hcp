@@ -15,6 +15,10 @@ case "${cmd}" in
     sub="${1:-}"
     shift || true
     if [[ "${sub}" == "hcp" ]]; then
+      if [[ "${MOCK_AZ_NO_ARO:-0}" == "1" ]]; then
+        echo "ERROR: az aro hcp not available" >&2
+        exit 1
+      fi
       hcp_cmd="${1:-}"
       shift || true
       case "${hcp_cmd}" in
@@ -70,6 +74,21 @@ case "${cmd}" in
     ;;
   version)
     echo '{"azure-cli":"2.67.0"}'
+    ;;
+  extension)
+    sub="${1:-}"
+    if [[ "${sub}" == "list" ]]; then
+      if [[ "${MOCK_AZ_LEGACY_ARO_HCP:-0}" == "1" ]]; then
+        echo '[{"name":"aro-hcp","version":"1.0.0b2"}]'
+      elif [[ "${MOCK_AZ_NO_ARO:-0}" == "1" ]]; then
+        echo '[]'
+      else
+        echo '[{"name":"aro","version":"1.0.14"}]'
+      fi
+      exit 0
+    fi
+    echo "mock az: unsupported extension ${sub} $*" >&2
+    exit 1
     ;;
   keyvault)
     if [[ "${1:-}" == "secret" && "${2:-}" == "show" ]]; then

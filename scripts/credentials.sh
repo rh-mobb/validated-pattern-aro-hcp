@@ -64,6 +64,7 @@ request_via_rest() {
 }
 
 cmd_request() {
+  assert_unified_aro_extension_for_hcp
   cluster_exists || die "Cluster ${CLUSTER_NAME} does not exist"
   if az aro hcp cluster request-credential -h >/dev/null 2>&1; then
     request_via_cli || request_via_rest
@@ -73,6 +74,7 @@ cmd_request() {
 }
 
 cmd_revoke() {
+  assert_unified_aro_extension_for_hcp
   cluster_exists || die "Cluster ${CLUSTER_NAME} does not exist"
   if az aro hcp cluster revoke-credential -h >/dev/null 2>&1; then
     az aro hcp cluster revoke-credential \
