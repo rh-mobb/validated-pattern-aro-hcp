@@ -428,6 +428,7 @@ flowchart TB
 | `10.0.2.0/28` | Jump subnet | Terraform `jump_subnet_prefix`; optional `enable_jumpbox` |
 | `10.0.3.0/24` | Reserved ANF delegated subnet | Terraform `netapp_subnet_prefix`. **Not created here.** Sibling virt/storage stack ([issue #16](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/16)) consumes this CIDR. NFS data plane is RFC1918 in-VNet (not a Private Endpoint). |
 | `10.0.4.0/26` | Reserved Azure Route Server subnet | Terraform `route_server_subnet_prefix`. **Not created here.** Sibling creates subnet **`RouteServerSubnet`** (Azure-required name, no NSG/UDR). BGP data plane is RFC1918; the sibling also creates a Standard public IP (management plane — exception above). |
+| `10.0.5.0/28` | Reserved agentic OpenAI PE subnet | Terraform `agentic_pe_subnet_prefix`. **Not created here.** Sibling [`validated-pattern-aro-agentic`](https://github.com/rh-mobb/validated-pattern-aro-agentic) `modules/azure` creates subnet + Private Endpoint to Azure OpenAI (RFC1918 data plane). Other LLM backends (e.g. Bedrock) do not use this CIDR — see [Platform contract](guides/platform-contract.md). |
 | `10.128.0.0/14` | Pod CIDR | Terraform `pod_cidr` (ARM default) |
 | `172.30.0.0/16` | Service CIDR | Terraform `service_cidr` (ARM default) |
 
@@ -822,7 +823,7 @@ Helpers on `scripts/external-auth.sh`: `login` (`oc-oidc`), `rbac-user`, `rbac-g
 Terraform does not own in-cluster operators. Bootstrap:
 
 1. Ensures `kube-system/additional-pull-secret` (from `PULL_SECRET_PATH`, else Key Vault `redhat-pull-secret`) and waits for HCCO `global-pull-secret`.
-2. Applies [`gitops/bootstrap/`](../gitops/bootstrap/) (OpenShift GitOps `Subscription`, channel `gitops-1.19`, `installPlanApproval: Automatic`).
+2. Applies [`gitops/bootstrap/`](../gitops/bootstrap/) (OpenShift GitOps `Subscription`, channel `gitops-1.22`, `installPlanApproval: Automatic`).
 3. Waits for the CSV and the default Argo CD instance (`openshift-gitops`).
 4. Publishes ConfigMap `openshift-gitops/aro-platform-metadata` from Terraform outputs (`esoClientId`, `azureTenantId`, `keyVaultUri`, `keyVaultName`, `pullSecretKeyVaultSecretName`). Same handshake as ROSA `rosa-platform-metadata`.
 5. Applies [`gitops/overlays/<profile>/`](../gitops/overlays/) (Web Terminal, Compliance Operator, External Secrets Operator). Compliance `Subscription.spec.config` sets `nodeSelector` to `node-role.kubernetes.io/worker` and `PLATFORM=HyperShift` so the operator can schedule on HCP (the CSV otherwise selects master nodes). A Job waits for the ConfigMap, annotates `external-secrets-sa`, and applies `ClusterSecretStore` plus `ExternalSecret` for `additional-pull-secret`.

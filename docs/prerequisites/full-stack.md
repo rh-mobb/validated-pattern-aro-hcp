@@ -160,7 +160,7 @@ Same Azure permissions as **apply** (delete resources, including the Entra app).
 
 #### `make cluster.<name>.platform`
 
-Reads Terraform outputs only (**Reader** on existing state). Writes gitignored `clusters/<name>/platform.json` for a sibling virt/storage stack. No extra Azure rights.
+Reads Terraform outputs only (**Reader** on existing state). Writes gitignored `clusters/<name>/platform.json` for sibling virt/agentic stacks (portable core + Azure extensions — see [Platform contract](../guides/platform-contract.md)). No extra Azure rights.
 
 ### Optional: custom Azure roles
 

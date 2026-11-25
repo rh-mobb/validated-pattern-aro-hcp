@@ -10,6 +10,7 @@ locals {
     jump         = var.jump_subnet_prefix
     netapp       = var.netapp_subnet_prefix
     route_server = var.route_server_subnet_prefix
+    agentic_pe   = var.agentic_pe_subnet_prefix
   }
 
   route_server_prefix_length = tonumber(split("/", var.route_server_subnet_prefix)[1])
@@ -109,6 +110,54 @@ resource "terraform_data" "platform_cidrs" {
     precondition {
       condition     = local.route_server_prefix_length <= 26
       error_message = "route_server_subnet_prefix must be /26 or larger (Azure Route Server minimum)."
+    }
+
+    precondition {
+      condition = (
+        local.platform_cidr_range.agentic_pe.start >= local.platform_cidr_range.vnet.start &&
+        local.platform_cidr_range.agentic_pe.end <= local.platform_cidr_range.vnet.end
+      )
+      error_message = "agentic_pe_subnet_prefix must be inside address_prefix (VNet CIDR)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.agentic_pe.start <= local.platform_cidr_range.worker.end &&
+        local.platform_cidr_range.worker.start <= local.platform_cidr_range.agentic_pe.end
+      )
+      error_message = "agentic_pe_subnet_prefix must not overlap the worker subnet (subnet_prefix)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.agentic_pe.start <= local.platform_cidr_range.integ.end &&
+        local.platform_cidr_range.integ.start <= local.platform_cidr_range.agentic_pe.end
+      )
+      error_message = "agentic_pe_subnet_prefix must not overlap the VNet integration subnet."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.agentic_pe.start <= local.platform_cidr_range.jump.end &&
+        local.platform_cidr_range.jump.start <= local.platform_cidr_range.agentic_pe.end
+      )
+      error_message = "agentic_pe_subnet_prefix must not overlap jump_subnet_prefix (default 10.0.2.0/28)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.agentic_pe.start <= local.platform_cidr_range.netapp.end &&
+        local.platform_cidr_range.netapp.start <= local.platform_cidr_range.agentic_pe.end
+      )
+      error_message = "agentic_pe_subnet_prefix must not overlap netapp_subnet_prefix (default 10.0.3.0/24)."
+    }
+
+    precondition {
+      condition = !(
+        local.platform_cidr_range.agentic_pe.start <= local.platform_cidr_range.route_server.end &&
+        local.platform_cidr_range.route_server.start <= local.platform_cidr_range.agentic_pe.end
+      )
+      error_message = "agentic_pe_subnet_prefix must not overlap route_server_subnet_prefix (default 10.0.4.0/26)."
     }
   }
 }

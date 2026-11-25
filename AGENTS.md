@@ -27,6 +27,23 @@ ANF + Trident (later CNV) is a **second IaC run**, not this root:
 
 If the user asks only for RWX/virt storage, work in the sibling (or that `references/` clone). If they ask for a cluster, stay here.
 
+## Sibling: OpenShift 5 agentic (Lightspeed / Perses / MCP)
+
+Azure OpenAI (Private Endpoint) + agentic operators is a **second IaC run**, not this root:
+
+| | This repo | Sibling [`validated-pattern-aro-agentic`](https://github.com/rh-mobb/validated-pattern-aro-agentic) |
+|--|-----------|-----------------------------------------------------------------------------------------------------|
+| Role | Cluster + baseline GitOps | `modules/azure` / future `modules/aws` + GitOps (COO, Lightspeed, RHCL/MCP) |
+| Canonical | `apply` → `kubeconfig` → `external-auth` → `bootstrap` → **`platform`** | Second checkout; `terraform/` reads `platform.json`; `llm_backend` selects cloud LLM module |
+| In-tree | Do **not** install Lightspeed, COO, or RHCL here | Local co-dev: gitignored `references/validated-pattern-aro-agentic` |
+
+- **`platform.json`:** portable core + Azure extensions; publishes `installer.cloud = azure`. Contract: [`docs/guides/platform-contract.md`](docs/guides/platform-contract.md).
+- Reserved agentic PE CIDR default **`10.0.5.0/28`** (`agentic_pe_subnet_prefix`). Subnet is created in the sibling Azure module, not here.
+- **Destroy sibling first** (Terraform OpenAI + operator cleanup), then `make cluster.<name>.destroy`.
+- Human path: [Agentic stack](docs/guides/agentic-stack.md).
+
+If the user asks only for agentic/OCP 5 LLM features, work in the sibling. If they ask for the cluster, stay here.
+
 ## Human docs vs agent docs
 
 Operators follow MkDocs (`docs/`). Agents follow this file plus per-profile [`clusters/<name>/AGENTS.md`](clusters/) when it exists.
