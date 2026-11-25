@@ -31,10 +31,10 @@ OLM **Classic** `Subscription`s (`installPlanApproval: Automatic`). Channels are
 
 | Operator | Namespace | Channel (in git) |
 |----------|-----------|------------------|
-| OpenShift GitOps | `openshift-gitops-operator` | `gitops-1.19` |
+| OpenShift GitOps | `openshift-gitops-operator` | `gitops-1.22` |
 | Web Terminal | `openshift-operators` | `fast` |
 | Compliance Operator | `openshift-compliance` | `stable` |
-| External Secrets Operator | `external-secrets-operator` | `stable-v1` |
+| External Secrets Operator | `external-secrets-operator` | `stable-v1.2` |
 
 HCP has no master nodes. The Compliance Operator CSV still selects `node-role.kubernetes.io/master`. The Subscription sets `spec.config.nodeSelector` to `node-role.kubernetes.io/worker` (OLM **replaces** the CSV selector) and `PLATFORM=HyperShift`, matching the hosted-control-plane install path. Direct Deployment patches are reverted on the next OLM reconcile.
 
@@ -46,7 +46,7 @@ Terraform creates the ESO user-assigned identity and federated credential (trust
 
 Bump a minor by editing the `channel` field in [`gitops/bootstrap/subscription.yaml`](../../gitops/bootstrap/subscription.yaml) (or the other operator Subscriptions) and letting Argo sync. Do not re-run bootstrap for a channel change once GitOps is healthy. Re-run bootstrap for first install, if the operator / root Application is gone, or to apply GitOps Entra OIDC after a later `external-auth`.
 
-GitOps 1.19’s documented OpenShift matrix currently tops out at **4.21**. This repo’s example clusters use **4.22**. If the InstallPlan fails with `maxOpenShiftVersion`, bump `gitops-1.19` to the current `gitops-1.x` line (not `latest`, which can jump minors without a git change).
+Pin OpenShift GitOps to the newest **`gitops-1.x`** channel that appears in `oc get packagemanifest openshift-gitops-operator -n openshift-marketplace` for your cluster version (validated on **OpenShift 5.0** with `gitops-1.22`). If an InstallPlan fails with `maxOpenShiftVersion`, bump that channel in [`gitops/bootstrap/subscription.yaml`](../../gitops/bootstrap/subscription.yaml) (not `latest`, which can jump minors without a git change). Web Terminal (`fast`), Compliance (`stable`), and External Secrets (`stable-v1.2` when listed) use single channels in the default Red Hat catalog—refresh the channel name if your index only exposes a newer line.
 
 ## Make and env
 

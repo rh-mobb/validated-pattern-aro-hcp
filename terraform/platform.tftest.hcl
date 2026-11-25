@@ -68,6 +68,16 @@ run "platform_contract_v1_defaults" {
   }
 
   assert {
+    condition     = output.platform.installer.repository == "validated-pattern-aro-hcp"
+    error_message = "platform.installer.repository must identify this checkout."
+  }
+
+  assert {
+    condition     = output.platform.installer.cloud == "azure"
+    error_message = "platform.installer.cloud must be azure for ARO HCP."
+  }
+
+  assert {
     condition     = output.platform.network.reserved.netapp_subnet_prefix == "10.0.3.0/24"
     error_message = "Reserved ANF CIDR must default to 10.0.3.0/24."
   }
@@ -105,6 +115,16 @@ run "platform_contract_v1_defaults" {
   assert {
     condition     = output.route_server_subnet_prefix == "10.0.4.0/26"
     error_message = "route_server_subnet_prefix output must match the reserved CIDR."
+  }
+
+  assert {
+    condition     = output.platform.network.reserved.agentic_pe_subnet_prefix == "10.0.5.0/28"
+    error_message = "platform reserved agentic_pe_subnet_prefix must default to 10.0.5.0/28."
+  }
+
+  assert {
+    condition     = output.agentic_pe_subnet_prefix == "10.0.5.0/28"
+    error_message = "agentic_pe_subnet_prefix output must match the reserved CIDR."
   }
 
   assert {

@@ -4,7 +4,7 @@ metadata:
   name: openshift-external-secrets-operator
   namespace: external-secrets-operator
 spec:
-  channel: stable-v1
+  channel: stable-v1.2
   installPlanApproval: Automatic
   name: openshift-external-secrets-operator
   source: redhat-operators

@@ -44,6 +44,7 @@ enable_jumpbox = false
 # Reserved CIDR for a sibling ANF delegated subnet (not created here). Default 10.0.3.0/24.
 # Must not overlap worker 10.0.0.0/24, integration 10.0.1.0/24, or jump 10.0.2.0/28.
 # netapp_subnet_prefix = "10.0.3.0/24"
+# agentic_pe_subnet_prefix = "10.0.5.0/28"  # sibling Azure OpenAI PE (default)
 
 # Red Hat pull secret for OperatorHub (GitOps bootstrap). Relative paths are
 # resolved from terraform/. The file is gitignored (tmp/ and pull-secret.txt).

@@ -14,10 +14,10 @@ api_visibility = "Public"
 EOF
 }
 
-@test "gitops dry-run pins gitops-1.19 with Automatic approval" {
+@test "gitops dry-run pins gitops-1.22 with Automatic approval" {
   run bash "${BATS_TEST_DIRNAME}/../../scripts/gitops-bootstrap.sh" bootstrap
   [ "$status" -eq 0 ]
-  [[ "$output" == *"channel: gitops-1.19"* ]]
+  [[ "$output" == *"channel: gitops-1.22"* ]]
   [[ "$output" == *"installPlanApproval: Automatic"* ]]
   [[ "$output" == *"name: openshift-gitops-operator"* ]]
 }
@@ -44,7 +44,7 @@ EOF
   run bash "${BATS_TEST_DIRNAME}/../../scripts/gitops-bootstrap.sh" bootstrap
   [ "$status" -eq 0 ]
   [[ "$output" == *"name: openshift-external-secrets-operator"* ]]
-  [[ "$output" == *"channel: stable-v1"* ]]
+  [[ "$output" == *"channel: stable-v1.2"* ]]
   [[ "$output" == *"name: external-secrets-sa"* ]]
   [[ "$output" == *"name: argocd-eso-hooks"* ]]
 }

@@ -239,10 +239,19 @@ output "route_server_subnet_prefix" {
   value       = var.route_server_subnet_prefix
 }
 
+output "agentic_pe_subnet_prefix" {
+  description = "Reserved Azure OpenAI Private Endpoint subnet CIDR. Not created in this root; agentic sibling consumes it."
+  value       = var.agentic_pe_subnet_prefix
+}
+
 output "platform" {
-  description = "Versioned contract for a sibling virt/storage stack (terraform output -json platform)."
+  description = "Versioned contract for sibling virt/agentic stacks (terraform output -json platform)."
   value = {
-    contract_version    = 1
+    contract_version = 1
+    installer = {
+      repository = "validated-pattern-aro-hcp"
+      cloud      = "azure"
+    }
     subscription_id     = data.azurerm_client_config.current.subscription_id
     tenant_id           = module.identities.tenant_id
     location            = module.network.location
@@ -261,6 +270,7 @@ output "platform" {
       reserved = {
         netapp_subnet_prefix       = var.netapp_subnet_prefix
         route_server_subnet_prefix = var.route_server_subnet_prefix
+        agentic_pe_subnet_prefix   = var.agentic_pe_subnet_prefix
       }
     }
     oidc_issuer_url             = module.cluster.oidc_issuer_url

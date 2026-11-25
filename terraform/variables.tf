@@ -80,6 +80,12 @@ variable "route_server_subnet_prefix" {
   default     = "10.0.4.0/26"
 }
 
+variable "agentic_pe_subnet_prefix" {
+  description = "Reserved CIDR for sibling Azure OpenAI Private Endpoint subnet (not created here). Default 10.0.5.0/28; must not overlap worker, integration, jump, netapp, or route_server_subnet_prefix."
+  type        = string
+  default     = "10.0.5.0/28"
+}
+
 variable "enable_jumpbox" {
   description = "Create a Fedora jump VM with a public IP for sshuttle."
   type        = bool

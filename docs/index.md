@@ -45,7 +45,8 @@ flowchart TB
 
 | Profile | Example directory | Typical use |
 |---------|-------------------|-------------|
-| Public API + ingress | `clusters/public/` | Development, public console |
+| Public API + ingress (OCP 4.22) | `clusters/public/` | Default copy source |
+| OpenShift 5 agentic | `clusters/aro-ocp5/` | + `layer-ocp-agentic` |
 | Private API + ingress + jump | `clusters/private/` | RFC1918 API/ingress into the VNet; sshuttle via jump box |
 | ARO + OpenShift Virtualization | `clusters/aro-virt/` | Same as public, plus `node_pools.np-virt` (Dsv6 Azure Boost, 8+ cores) and sibling ANF/CNV |
 
