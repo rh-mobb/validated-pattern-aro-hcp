@@ -428,7 +428,7 @@ flowchart TB
 | `10.0.2.0/28` | Jump subnet | Terraform `jump_subnet_prefix`; optional `enable_jumpbox` |
 | `10.0.3.0/24` | Reserved ANF delegated subnet | Terraform `netapp_subnet_prefix`. **Not created here.** Sibling virt/storage stack ([issue #16](https://github.com/rh-mobb/validated-pattern-aro-hcp/issues/16)) consumes this CIDR. NFS data plane is RFC1918 in-VNet (not a Private Endpoint). |
 | `10.0.4.0/26` | Reserved Azure Route Server subnet | Terraform `route_server_subnet_prefix`. **Not created here.** Sibling creates subnet **`RouteServerSubnet`** (Azure-required name, no NSG/UDR). BGP data plane is RFC1918; the sibling also creates a Standard public IP (management plane — exception above). |
-| `10.0.5.0/28` | Reserved agentic OpenAI PE subnet | Terraform `agentic_pe_subnet_prefix`. **Not created here.** Sibling [`validated-pattern-aro-agentic`](https://github.com/rh-mobb/validated-pattern-aro-agentic) `modules/azure` creates subnet + Private Endpoint to Azure OpenAI (RFC1918 data plane). Other LLM backends (e.g. Bedrock) do not use this CIDR — see [Platform contract](guides/platform-contract.md). |
+| `10.0.5.0/28` | Reserved agentic OpenAI PE subnet | Terraform `agentic_pe_subnet_prefix`. **Not created here.** Layer [`layer-ocp-agentic`](https://github.com/rhcs-validated-patterns/layer-ocp-agentic) `modules/azure` creates subnet + Private Endpoint to Azure OpenAI (RFC1918 data plane). Other LLM backends (e.g. Bedrock) do not use this CIDR — see [Platform contract](guides/platform-contract.md). |
 | `10.128.0.0/14` | Pod CIDR | Terraform `pod_cidr` (ARM default) |
 | `172.30.0.0/16` | Service CIDR | Terraform `service_cidr` (ARM default) |
 

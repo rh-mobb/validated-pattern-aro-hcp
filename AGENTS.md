@@ -31,11 +31,11 @@ If the user asks only for RWX/virt storage, work in the sibling (or that `refere
 
 Azure OpenAI (Private Endpoint) + agentic operators is a **second IaC run**, not this root:
 
-| | This repo | Sibling [`validated-pattern-aro-agentic`](https://github.com/rh-mobb/validated-pattern-aro-agentic) |
+| | This repo | Layer [`layer-ocp-agentic`](https://github.com/rhcs-validated-patterns/layer-ocp-agentic) |
 |--|-----------|-----------------------------------------------------------------------------------------------------|
 | Role | Cluster + baseline GitOps | `modules/azure` / future `modules/aws` + GitOps (COO, Lightspeed, RHCL/MCP) |
 | Canonical | `apply` → `kubeconfig` → `external-auth` → `bootstrap` → **`platform`** | Second checkout; `terraform/` reads `platform.json`; `llm_backend` selects cloud LLM module |
-| In-tree | Do **not** install Lightspeed, COO, or RHCL here | Local co-dev: gitignored `references/validated-pattern-aro-agentic` |
+| In-tree | Do **not** install Lightspeed, COO, or RHCL here | Installer example: [`clusters/aro-ocp5`](clusters/aro-ocp5/terraform.tfvars) — not `clusters/public` (OCP 4.22) |
 
 - **`platform.json`:** portable core + Azure extensions; publishes `installer.cloud = azure`. Contract: [`docs/guides/platform-contract.md`](docs/guides/platform-contract.md).
 - Reserved agentic PE CIDR default **`10.0.5.0/28`** (`agentic_pe_subnet_prefix`). Subnet is created in the sibling Azure module, not here.
@@ -165,7 +165,7 @@ On halt: paste evidence (op name, timestamps, ARM status, activity-log statuses)
 ### Preflight (every apply or destroy)
 
 1. **Azure identity.** `az account show` — confirm subscription name/id and user. If missing or unexpected, stop and ask.
-2. **`clusters/<name>/terraform.tfvars`.** Must exist (copy from `clusters/public`, `clusters/private`, or `clusters/aro-virt`). Treat it as the intended names, region, and versions. Never commit operator copies. `make cluster.<name>.plan` / `apply` / `destroy` pass `-var-file=clusters/<name>/terraform.tfvars` (beats leftover `TF_VAR_*` for keys in the file).
+2. **`clusters/<name>/terraform.tfvars`.** Must exist (copy from `clusters/public`, `clusters/private`, `clusters/aro-virt`, or `clusters/aro-ocp5` for agentic). Treat it as the intended names, region, and versions. Never commit operator copies. `make cluster.<name>.plan` / `apply` / `destroy` pass `-var-file=clusters/<name>/terraform.tfvars` (beats leftover `TF_VAR_*` for keys in the file).
 3. **`TF_VAR_*` leftovers — mandatory.** `-var-file` wins for keys in the cluster tfvars. Leftover `TF_VAR_*` that are **not** in the file (tags, CIDRs, disk size, etc.) still reach Terraform. Scripts after apply (`kubeconfig`, `external-auth`, CLI helpers) read **terraform outputs**, then fall back to the cluster tfvars; env overrides still win. `make test` does **not** pass the var-file and unsets mapped `TF_VAR_*` so CI uses Terraform defaults.
 
    List them:

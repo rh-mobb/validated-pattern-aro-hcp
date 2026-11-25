@@ -20,7 +20,7 @@ config/jump.pub
 !clusters/public/terraform.tfvars
 !clusters/private/terraform.tfvars
 !clusters/aro-virt/terraform.tfvars
-!clusters/aro-agentic/terraform.tfvars
+!clusters/aro-ocp5/terraform.tfvars
 
 # Per-cluster operator artifacts
 clusters/*/infrastructure.tfstate*

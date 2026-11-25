@@ -1,6 +1,6 @@
 # Platform and agentic contracts
 
-Sibling stacks (virt, agentic) read a versioned **`platform.json`** from the cluster installer. LLM-specific IaC and GitOps live in [`validated-pattern-aro-agentic`](https://github.com/rh-mobb/validated-pattern-aro-agentic) (or a future cloud-specific installer).
+Sibling stacks (virt, agentic) read a versioned **`platform.json`** from the cluster installer. LLM-specific IaC and GitOps live in [`layer-ocp-agentic`](https://github.com/rhcs-validated-patterns/layer-ocp-agentic) (or a future cloud-specific installer).
 
 ## `platform.json` (installer → siblings)
 
@@ -58,7 +58,7 @@ ROSA (or another cloud) would publish the **portable core** plus its own extensi
 | `llm_backend` | `azure` (default), `none` (operators-only; hand-write LLM fields), future `aws` |
 | Azure path | `openai_*`, `key_vault_secret_*`, `lightspeed_llm_provider_name`, `lightspeed_secret_name` |
 
-See the agentic repo [platform contract](https://github.com/rh-mobb/validated-pattern-aro-agentic/blob/main/docs/guides/platform-contract.md) for module layout (`modules/azure`, future `modules/aws`) and bootstrap expectations.
+See the layer [platform contract](https://github.com/rhcs-validated-patterns/layer-ocp-agentic/blob/main/docs/guides/platform-contract.md) for module layout (`modules/azure`, future `modules/aws`) and bootstrap expectations.
 
 ## Workflow summary
 

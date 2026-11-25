@@ -6,9 +6,10 @@ Each directory under `clusters/` represents one ARO HCP deployment. Example prof
 
 | Directory | Profile |
 |-----------|---------|
-| [`public/`](public/) | Public API and ingress; no jump box |
-| [`private/`](private/) | Private API and ingress (RFC1918 into the VNet); jump box enabled |
-| [`aro-virt/`](aro-virt/) | Public API; jump box on (`10.0.2.4` for CUDN BGP tests); reserved ANF `10.0.3.0/24` + Route Server `10.0.4.0/26`; `np-virt` Azure Boost D8s_v6 with `workload=virtualization` and `bgp_router=true`. Operator: [Virt stack](../docs/guides/virt-stack.md). Agent E2E: [`aro-virt/AGENTS.md`](aro-virt/AGENTS.md) |
+| [`public/`](public/) | OpenShift **4.22**; public API and ingress; no jump box (default copy source) |
+| [`private/`](private/) | OpenShift **4.22**; private API and ingress; jump box enabled |
+| [`aro-virt/`](aro-virt/) | OpenShift **4.22**; public API; jump on; ANF + Route Server CIDRs; `np-virt`. [Virt stack](../docs/guides/virt-stack.md). [`aro-virt/AGENTS.md`](aro-virt/AGENTS.md) |
+| [`aro-ocp5/`](aro-ocp5/) | OpenShift **5.0**; public API; larger workers for agentic layer. [Agentic stack](../docs/guides/agentic-stack.md) + [`layer-ocp-agentic`](https://github.com/rhcs-validated-patterns/layer-ocp-agentic) |
 
 ## Usage
 

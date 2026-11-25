@@ -13,7 +13,7 @@ cluster_name = "my-cluster"
 #   nsg_name                     = "<cluster_name>-nsg"
 
 # Cluster stream (X.Y). Plan fails if this stream is not enabled in location.
-cluster_version = "5.0"
+cluster_version = "4.22"
 cluster_channel = "stable"
 
 # Default node pool (np-1). Extra pools belong in node_pools.
@@ -21,7 +21,7 @@ cluster_channel = "stable"
 # disk, encryption-at-host, auto-repair, drain timeout, subnet_id).
 # availability_zone is Azure zone 1/2/3 (not uksouth-1). Omit to leave unpinned.
 # Optional CLI flags (subnet_id, disk_*, auto_repair, taints, …) are omitted from ARM when unset.
-node_pool_version = "5.0.1"
+node_pool_version = "4.22.9"
 node_pool_channel = "stable"
 
 node_pools = {
